@@ -47,6 +47,7 @@ var clientMethodOperationIDs = map[string]string{
 	"GetNotificationPreferences":      "getNotificationPreferences",
 	"GetOpenAPI":                      "getOpenApi",
 	"GetProject":                      "getProject",
+	"GetProjectDefaults":              "getProjectDefaults",
 	"GetProviderRates":                "getProviderRates",
 	"GetRankCheckResult":              "getRankCheckResult",
 	"ImportCloudExport":               "importCloudExport",

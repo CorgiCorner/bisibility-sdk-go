@@ -137,37 +137,48 @@ type UpdateProjectInput struct {
 	Name   *string `json:"name,omitempty"`
 }
 
+// ProjectDefaultsSource identifies how the effective default market was selected.
+type ProjectDefaultsSource string
+
+const (
+	ProjectDefaultsSourceDerived  ProjectDefaultsSource = "derived"
+	ProjectDefaultsSourceExplicit ProjectDefaultsSource = "explicit"
+	ProjectDefaultsSourceFallback ProjectDefaultsSource = "fallback"
+)
+
 // ProjectDefaults are the project default market and schedule settings.
 type ProjectDefaults struct {
-	AutoSchedule   bool               `json:"auto_schedule"`
-	City           *string            `json:"city"`
-	Country        string             `json:"country"`
-	CronExpression *string            `json:"cron_expression"`
-	Device         Device             `json:"device"`
-	Frequency      RankCheckFrequency `json:"frequency"`
-	JitterMinutes  int                `json:"jitter_minutes"`
-	LastCheckedAt  *time.Time         `json:"last_checked_at"`
-	LocationKey    string             `json:"location_key"`
-	NextCheckAt    *time.Time         `json:"next_check_at"`
-	ProjectID      string             `json:"project_id"`
-	Timezone       string             `json:"timezone"`
-	UpdatedAt      *time.Time         `json:"updated_at"`
+	City            *string               `json:"city"`
+	Country         string                `json:"country"`
+	CronExpression  *string               `json:"cron_expression"`
+	Device          Device                `json:"device"`
+	Frequency       RankCheckFrequency    `json:"frequency"`
+	JitterMinutes   int                   `json:"jitter_minutes"`
+	LastCheckedAt   *time.Time            `json:"last_checked_at"`
+	LocationKey     string                `json:"location_key"`
+	NextCheckAt     *time.Time            `json:"next_check_at"`
+	ProjectID       string                `json:"project_id"`
+	SerpDepth       int                   `json:"serp_depth"`
+	SerpStopOnMatch bool                  `json:"serp_stop_on_match"`
+	Source          ProjectDefaultsSource `json:"source"`
+	Timezone        string                `json:"timezone"`
+	UpdatedAt       *time.Time            `json:"updated_at"`
 }
 
 // ProjectDefaultsPatch updates project default market and schedule settings.
 // Frequency is required by the API. Country and Device must be provided
 // together when LocationKey is omitted. Omitted schedule fields fall back to
-// server defaults (auto_schedule true, jitter_minutes 60, timezone UTC).
+// server defaults (jitter_minutes 60 and timezone UTC).
 type ProjectDefaultsPatch struct {
-	AutoSchedule   *bool              `json:"auto_schedule,omitempty"`
-	City           *string            `json:"city,omitempty"`
-	Country        string             `json:"country,omitempty"`
-	CronExpression *string            `json:"cron_expression,omitempty"`
-	Device         Device             `json:"device,omitempty"`
-	Frequency      RankCheckFrequency `json:"frequency"`
-	JitterMinutes  *int               `json:"jitter_minutes,omitempty"`
-	LocationKey    string             `json:"location_key,omitempty"`
-	Timezone       string             `json:"timezone,omitempty"`
+	City            *string            `json:"city,omitempty"`
+	Country         string             `json:"country,omitempty"`
+	CronExpression  *string            `json:"cron_expression,omitempty"`
+	Device          Device             `json:"device,omitempty"`
+	Frequency       RankCheckFrequency `json:"frequency"`
+	JitterMinutes   *int               `json:"jitter_minutes,omitempty"`
+	LocationKey     string             `json:"location_key,omitempty"`
+	SerpStopOnMatch *bool              `json:"serp_stop_on_match,omitempty"`
+	Timezone        string             `json:"timezone,omitempty"`
 }
 
 // APIKey describes an API key without the raw token.
@@ -189,7 +200,6 @@ type CreatedAPIKey struct {
 
 // KeywordSchedule is a keyword schedule returned by the API.
 type KeywordSchedule struct {
-	AutoSchedule   bool               `json:"auto_schedule"`
 	CronExpression *string            `json:"cron_expression"`
 	Frequency      RankCheckFrequency `json:"frequency"`
 	JitterMinutes  int                `json:"jitter_minutes"`
@@ -220,7 +230,6 @@ type Keyword struct {
 
 // KeywordScheduleInput is the camelCase schedule shape accepted by write endpoints.
 type KeywordScheduleInput struct {
-	AutoSchedule   *bool              `json:"autoSchedule,omitempty"`
 	CronExpression *string            `json:"cronExpression"`
 	Frequency      RankCheckFrequency `json:"frequency"`
 	JitterMinutes  *int               `json:"jitterMinutes,omitempty"`

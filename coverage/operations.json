@@ -33,6 +33,7 @@
 	"getNotificationPreferences",
 	"getOpenApi",
 	"getProject",
+	"getProjectDefaults",
 	"getProviderRates",
 	"getRankCheckResult",
 	"importCloudExport",

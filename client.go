@@ -288,6 +288,11 @@ func (c *Client) DeleteProject(ctx context.Context, projectID string, options ..
 	return requestJSON[Project](c, ctx, http.MethodDelete, projectPathRoot+url.PathEscape(projectID), newRequestConfig(options...))
 }
 
+// GetProjectDefaults gets project default market and schedule settings.
+func (c *Client) GetProjectDefaults(ctx context.Context, projectID string, options ...RequestOption) (*ProjectDefaults, error) {
+	return requestJSON[ProjectDefaults](c, ctx, http.MethodGet, projectPathRoot+url.PathEscape(projectID)+"/defaults", newRequestConfig(options...))
+}
+
 // UpdateProjectDefaults patches project default market and schedule settings.
 func (c *Client) UpdateProjectDefaults(ctx context.Context, projectID string, input ProjectDefaultsPatch, options ...RequestOption) (*ProjectDefaults, error) {
 	if input.Frequency == "" {

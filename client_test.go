@@ -516,21 +516,21 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "update project defaults",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				autoSchedule := true
 				jitter := 30
+				serpStopOnMatch := true
 				return c.UpdateProjectDefaults(ctx, "prj_1", ProjectDefaultsPatch{
-					AutoSchedule:  &autoSchedule,
-					City:          strPtr("Austin"),
-					Country:       "United States",
-					Device:        DeviceMobile,
-					Frequency:     RankCheckFrequencyDaily,
-					JitterMinutes: &jitter,
-					Timezone:      "America/Chicago",
+					City:            strPtr("Austin"),
+					Country:         "United States",
+					Device:          DeviceMobile,
+					Frequency:       RankCheckFrequencyDaily,
+					JitterMinutes:   &jitter,
+					SerpStopOnMatch: &serpStopOnMatch,
+					Timezone:        "America/Chicago",
 				})
 			},
 			method:          http.MethodPatch,
 			path:            "/api/v1/projects/prj_1/defaults",
-			body:            `{"auto_schedule":true,"city":"Austin","country":"United States","device":"mobile","frequency":"daily","jitter_minutes":30,"timezone":"America/Chicago"}`,
+			body:            `{"city":"Austin","country":"United States","device":"mobile","frequency":"daily","jitter_minutes":30,"serp_stop_on_match":true,"timezone":"America/Chicago"}`,
 			response:        projectDefaultsJSON("prj_1"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
@@ -1545,19 +1545,21 @@ func projectJSON(id string) map[string]any {
 // projectDefaultsJSON mirrors the app's defaultsResource shape (lib/api/projects.ts).
 func projectDefaultsJSON(projectID string) map[string]any {
 	return map[string]any{
-		"auto_schedule":   true,
-		"city":            "Austin",
-		"country":         "United States",
-		"cron_expression": nil,
-		"device":          "mobile",
-		"frequency":       "daily",
-		"jitter_minutes":  30,
-		"last_checked_at": nil,
-		"location_key":    "US/Texas/Austin",
-		"next_check_at":   "2026-01-05T00:00:00Z",
-		"project_id":      projectID,
-		"timezone":        "America/Chicago",
-		"updated_at":      "2026-01-04T00:00:00Z",
+		"city":               "Austin",
+		"country":            "United States",
+		"cron_expression":    nil,
+		"device":             "mobile",
+		"frequency":          "daily",
+		"jitter_minutes":     30,
+		"last_checked_at":    nil,
+		"location_key":       "US/Texas/Austin",
+		"next_check_at":      "2026-01-05T00:00:00Z",
+		"project_id":         projectID,
+		"serp_depth":         50,
+		"serp_stop_on_match": true,
+		"source":             "explicit",
+		"timezone":           "America/Chicago",
+		"updated_at":         "2026-01-04T00:00:00Z",
 	}
 }
 
