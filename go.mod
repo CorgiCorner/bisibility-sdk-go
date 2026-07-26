@@ -1,3 +1,3 @@
-module github.com/bisibility/bisibility-sdk-go
+module bisibility.com/sdk-go
 
 go 1.22

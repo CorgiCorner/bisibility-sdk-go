@@ -15,7 +15,7 @@ Idiomatic Go client for the Bisibility REST API.
 ## Install
 
 ```sh
-go get github.com/bisibility/bisibility-sdk-go
+go get bisibility.com/sdk-go
 ```
 
 ## Quickstart
@@ -29,7 +29,7 @@ import (
 	"log"
 	"os"
 
-	bisibility "github.com/bisibility/bisibility-sdk-go"
+	bisibility "bisibility.com/sdk-go"
 )
 
 func main() {
