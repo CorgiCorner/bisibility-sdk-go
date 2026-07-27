@@ -181,6 +181,56 @@ type ProjectDefaultsPatch struct {
 	Timezone        string             `json:"timezone,omitempty"`
 }
 
+// ProjectOverviewRange identifies the rank-history window used for overview comparisons.
+type ProjectOverviewRange string
+
+const (
+	ProjectOverviewRange7Days  ProjectOverviewRange = "7d"
+	ProjectOverviewRange28Days ProjectOverviewRange = "28d"
+	ProjectOverviewRange90Days ProjectOverviewRange = "90d"
+)
+
+// ProjectOverviewDevice identifies the SERP device filter used for an overview.
+type ProjectOverviewDevice string
+
+const (
+	ProjectOverviewDeviceAll     ProjectOverviewDevice = "all"
+	ProjectOverviewDeviceDesktop ProjectOverviewDevice = "desktop"
+	ProjectOverviewDeviceMobile  ProjectOverviewDevice = "mobile"
+)
+
+// ProjectOverviewOptions filters a project overview.
+type ProjectOverviewOptions struct {
+	Device ProjectOverviewDevice
+	Range  ProjectOverviewRange
+	Tag    string
+}
+
+// ProjectOverviewPositionBucket counts keywords within an inclusive position range.
+type ProjectOverviewPositionBucket struct {
+	Count *int `json:"count"`
+	Max   int  `json:"max"`
+	Min   int  `json:"min"`
+}
+
+// ProjectOverview summarizes tracked keyword rank performance for a project.
+type ProjectOverview struct {
+	AveragePosition        *float64                        `json:"average_position"`
+	AveragePositionDelta   *float64                        `json:"average_position_delta"`
+	KeywordsAddedThisMonth int                             `json:"keywords_added_this_month"`
+	LastCheckAt            *time.Time                      `json:"last_check_at"`
+	NextCheckAt            *time.Time                      `json:"next_check_at"`
+	PositionDistribution   []ProjectOverviewPositionBucket `json:"position_distribution"`
+	ProjectID              string                          `json:"project_id"`
+	Top10Count             *int                            `json:"top_10_count"`
+	Top10Delta             *int                            `json:"top_10_delta"`
+	Top100Count            *int                            `json:"top_100_count"`
+	Top3Count              *int                            `json:"top_3_count"`
+	TrackedKeywordCount    int                             `json:"tracked_keyword_count"`
+	Visibility             *float64                        `json:"visibility"`
+	VisibilityDelta        *float64                        `json:"visibility_delta"`
+}
+
 // APIKey describes an API key without the raw token.
 type APIKey struct {
 	ID         string     `json:"id"`
@@ -269,6 +319,44 @@ type CreateKeywordsResponse struct {
 	Skipped  int                   `json:"skipped"`
 	Results  []CreateKeywordResult `json:"results"`
 	Warnings []string              `json:"warnings,omitempty"`
+}
+
+// KeywordMatchRequest identifies up to 50 keyword texts to match within a project.
+type KeywordMatchRequest struct {
+	Texts []string `json:"texts"`
+}
+
+// KeywordMatchMarket identifies one market where a keyword is tracked.
+type KeywordMatchMarket struct {
+	CountryCode string `json:"country_code"`
+	Device      Device `json:"device"`
+	Location    string `json:"location"`
+	LocationKey string `json:"location_key"`
+}
+
+// KeywordMatch keeps the normalized request text separate from the stored keyword text.
+type KeywordMatch struct {
+	KeywordID      string             `json:"keyword_id"`
+	LatestPosition *int               `json:"latest_position"`
+	Market         KeywordMatchMarket `json:"market"`
+	// MatchedText is the trimmed, lowercased request text used to match this keyword.
+	MatchedText string `json:"matched_text"`
+	// PreviousPosition is the previous observed rank position, if available.
+	PreviousPosition *int `json:"previous_position"`
+	// Text is the stored keyword text, which can differ from MatchedText in case and whitespace.
+	Text string `json:"text"`
+}
+
+// KeywordMatchMeta reports normalized texts with more than 100 matching markets;
+// their returned rows are partial.
+type KeywordMatchMeta struct {
+	TruncatedTexts []string `json:"truncated_texts"`
+}
+
+// KeywordMatchResponse contains matching keywords and truncation metadata.
+type KeywordMatchResponse struct {
+	Data []KeywordMatch   `json:"data"`
+	Meta KeywordMatchMeta `json:"meta"`
 }
 
 // NullableString represents an optional string field that can be explicitly set to null.

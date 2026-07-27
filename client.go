@@ -24,7 +24,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.2.0"
+const Version = "0.4.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -293,6 +293,17 @@ func (c *Client) GetProjectDefaults(ctx context.Context, projectID string, optio
 	return requestJSON[ProjectDefaults](c, ctx, http.MethodGet, projectPathRoot+url.PathEscape(projectID)+"/defaults", newRequestConfig(options...))
 }
 
+// GetProjectOverview gets keyword rank performance for a project.
+func (c *Client) GetProjectOverview(ctx context.Context, projectID string, input *ProjectOverviewOptions, options ...RequestOption) (*ProjectOverview, error) {
+	config := newRequestConfig(options...)
+	if input != nil {
+		addQuery(config.query, "device", string(input.Device))
+		addQuery(config.query, "range", string(input.Range))
+		addQuery(config.query, "tag", input.Tag)
+	}
+	return requestJSON[ProjectOverview](c, ctx, http.MethodGet, projectPathRoot+url.PathEscape(projectID)+"/overview", config)
+}
+
 // UpdateProjectDefaults patches project default market and schedule settings.
 func (c *Client) UpdateProjectDefaults(ctx context.Context, projectID string, input ProjectDefaultsPatch, options ...RequestOption) (*ProjectDefaults, error) {
 	if input.Frequency == "" {
@@ -362,6 +373,13 @@ func (c *Client) CreateKeywords(ctx context.Context, projectID string, input Cre
 	config := newRequestConfig(options...)
 	config.body = input
 	return requestJSON[CreateKeywordsResponse](c, ctx, http.MethodPost, projectPathRoot+url.PathEscape(projectID)+keywordsPath, config)
+}
+
+// MatchProjectKeywords matches exact tracked keyword texts across project markets.
+func (c *Client) MatchProjectKeywords(ctx context.Context, projectID string, input KeywordMatchRequest, options ...RequestOption) (*KeywordMatchResponse, error) {
+	config := newRequestConfig(options...)
+	config.body = input
+	return requestJSON[KeywordMatchResponse](c, ctx, http.MethodPost, projectPathRoot+url.PathEscape(projectID)+"/keyword-matches", config)
 }
 
 // KeywordsCreate is an operation-style alias for CreateKeywords.
