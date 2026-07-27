@@ -28,11 +28,13 @@ func TestMatchProjectKeywords(t *testing.T) {
 			"data": []map[string]any{
 				{
 					"keyword_id": "kw_1", "matched_text": "headless cms", "text": " Headless CMS ", "latest_position": 3, "previous_position": 7,
-					"market": map[string]any{"location": "Austin", "location_key": "US/Texas/Austin", "country_code": "US", "device": "mobile"},
+					"ranking_url": "https://example.com/headless-cms",
+					"market":      map[string]any{"location": "Austin", "location_key": "US/Texas/Austin", "country_code": "US", "device": "mobile"},
 				},
 				{
 					"keyword_id": "kw_2", "matched_text": "seo tool", "text": "SEO Tool", "latest_position": nil, "previous_position": 0,
-					"market": map[string]any{"location": "United States", "location_key": "US", "country_code": "US", "device": "desktop"},
+					"ranking_url": nil,
+					"market":      map[string]any{"location": "United States", "location_key": "US", "country_code": "US", "device": "desktop"},
 				},
 			},
 			"meta": map[string]any{"truncated_texts": []string{"headless cms"}},
@@ -52,12 +54,16 @@ func TestMatchProjectKeywords(t *testing.T) {
 	assertEqual(t, response.Data[0].Text, " Headless CMS ")
 	assertEqual(t, *response.Data[0].LatestPosition, 3)
 	assertEqual(t, *response.Data[0].PreviousPosition, 7)
+	assertEqual(t, *response.Data[0].RankingURL, "https://example.com/headless-cms")
 	assertEqual(t, response.Data[0].Market.Location, "Austin")
 	assertEqual(t, response.Data[0].Market.LocationKey, "US/Texas/Austin")
 	assertEqual(t, response.Data[0].Market.CountryCode, "US")
 	assertEqual(t, response.Data[0].Market.Device, DeviceMobile)
 	if response.Data[1].LatestPosition != nil {
 		t.Fatalf("latest_position = %v, want nil", *response.Data[1].LatestPosition)
+	}
+	if response.Data[1].RankingURL != nil {
+		t.Fatalf("ranking_url = %q, want nil", *response.Data[1].RankingURL)
 	}
 	assertEqual(t, *response.Data[1].PreviousPosition, 0)
 	if !reflect.DeepEqual(response.Meta.TruncatedTexts, []string{"headless cms"}) {
@@ -91,6 +97,39 @@ func TestKeywordMatchJSONTagsMatchContract(t *testing.T) {
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchRequest{}), []string{"texts"})
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchResponse{}), []string{"data", "meta"})
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchMeta{}), []string{"truncated_texts"})
-	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatch{}), []string{"keyword_id", "latest_position", "market", "matched_text", "previous_position", "text"})
+	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatch{}), []string{"keyword_id", "latest_position", "market", "matched_text", "previous_position", "ranking_url", "text"})
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchMarket{}), []string{"country_code", "device", "location", "location_key"})
+}
+
+func TestKeywordMatchRankingURLJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	rankingURL := "https://example.com/headless-cms"
+	encoded, err := json.Marshal(KeywordMatch{RankingURL: &rankingURL})
+	if err != nil {
+		t.Fatalf("marshal match with ranking URL: %v", err)
+	}
+
+	var decoded KeywordMatch
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("unmarshal match with ranking URL: %v", err)
+	}
+	if decoded.RankingURL == nil {
+		t.Fatal("ranking_url = nil, want URL")
+	}
+	assertEqual(t, *decoded.RankingURL, rankingURL)
+
+	encoded, err = json.Marshal(KeywordMatch{RankingURL: nil})
+	if err != nil {
+		t.Fatalf("marshal match with null ranking URL: %v", err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &fields); err != nil {
+		t.Fatalf("unmarshal match fields: %v", err)
+	}
+	rankingURLJSON, ok := fields["ranking_url"]
+	if !ok {
+		t.Fatal("ranking_url is missing from serialized match")
+	}
+	assertEqual(t, string(rankingURLJSON), "null")
 }

@@ -336,13 +336,16 @@ type KeywordMatchMarket struct {
 
 // KeywordMatch keeps the normalized request text separate from the stored keyword text.
 type KeywordMatch struct {
-	KeywordID      string             `json:"keyword_id"`
-	LatestPosition *int               `json:"latest_position"`
-	Market         KeywordMatchMarket `json:"market"`
-	// MatchedText is the trimmed, lowercased request text used to match this keyword.
-	MatchedText string `json:"matched_text"`
+	KeywordID      string `json:"keyword_id"`
+	LatestPosition *int   `json:"latest_position"`
 	// PreviousPosition is the previous observed rank position, if available.
 	PreviousPosition *int `json:"previous_position"`
+	// RankingURL is the URL that ranked at `latest_position` in the last completed check,
+	// or null when the keyword has no completed check.
+	RankingURL *string            `json:"ranking_url"`
+	Market     KeywordMatchMarket `json:"market"`
+	// MatchedText is the trimmed, lowercased request text used to match this keyword.
+	MatchedText string `json:"matched_text"`
 	// Text is the stored keyword text, which can differ from MatchedText in case and whitespace.
 	Text string `json:"text"`
 }

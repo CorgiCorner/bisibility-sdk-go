@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.1 - 2026-07-28
+
+- Added `ranking_url` to `KeywordMatch` responses, identifying the URL that ranked at `latest_position` in the last completed check or returning null when no completed check exists.
+
 ## 0.4.0 - 2026-07-27
 
 - Added Backlinks analysis and load-more row operations.
