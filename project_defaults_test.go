@@ -14,7 +14,7 @@ func TestGetProjectDefaults(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertEqual(t, r.Method, http.MethodGet)
-		assertEqual(t, r.RequestURI, "/api/v1/projects/prj%2F%20one/defaults")
+		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_a00000000000000000000000/defaults")
 		assertEqual(t, r.Header.Get("X-Trace-ID"), "trace_defaults")
 
 		writeJSON(t, w, http.StatusOK, map[string]any{
@@ -27,7 +27,7 @@ func TestGetProjectDefaults(t *testing.T) {
 			"last_checked_at":    "2026-07-24T08:00:00Z",
 			"location_key":       "US/New York/New York",
 			"next_check_at":      "2026-07-31T08:00:00Z",
-			"project_id":         "prj/ one",
+			"project_id":         "prj_a00000000000000000000000",
 			"serp_depth":         50,
 			"serp_stop_on_match": true,
 			"source":             "explicit",
@@ -40,14 +40,14 @@ func TestGetProjectDefaults(t *testing.T) {
 	client := newTestClient(t, server.URL+"/api/v1")
 	defaults, err := client.GetProjectDefaults(
 		context.Background(),
-		"prj/ one",
+		"prj_a00000000000000000000000",
 		WithRequestHeader("X-Trace-ID", "trace_defaults"),
 	)
 	if err != nil {
 		t.Fatalf("GetProjectDefaults returned error: %v", err)
 	}
 
-	assertEqual(t, defaults.ProjectID, "prj/ one")
+	assertEqual(t, defaults.ProjectID, "prj_a00000000000000000000000")
 	assertEqual(t, *defaults.City, "New York")
 	assertEqual(t, defaults.Country, "United States")
 	assertEqual(t, *defaults.CronExpression, "0 9 * * 1")
@@ -75,13 +75,13 @@ func TestGetProjectDefaultsMapsForbidden(t *testing.T) {
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertEqual(t, r.Method, http.MethodGet)
-		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_1/defaults")
+		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_a00000000000000000000000/defaults")
 		writeJSON(t, w, http.StatusForbidden, problem)
 	}))
 	defer server.Close()
 
 	client := newTestClient(t, server.URL+"/api/v1")
-	_, err := client.GetProjectDefaults(context.Background(), "prj_1")
+	_, err := client.GetProjectDefaults(context.Background(), "prj_a00000000000000000000000")
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("err = %T, want APIError", err)

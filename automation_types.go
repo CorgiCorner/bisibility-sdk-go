@@ -208,7 +208,6 @@ type LocationSuggestion struct {
 	CountryCode   string       `json:"country_code"`
 	DisplayName   string       `json:"display_name"`
 	HL            string       `json:"hl"`
-	ID            string       `json:"id"`
 	Kind          LocationKind `json:"kind"`
 	LanguageLabel string       `json:"language_label"`
 	LocationKey   string       `json:"location_key"`
@@ -260,10 +259,8 @@ type PageTrafficSnapshot struct {
 	CreatedAt            time.Time `json:"created_at"`
 	Date                 string    `json:"date"`
 	EngagementRate       *float64  `json:"engagement_rate"`
-	ID                   string    `json:"id"`
 	KeyEvents            *float64  `json:"key_events"`
 	Path                 string    `json:"path"`
-	ProjectID            string    `json:"project_id"`
 	Provider             string    `json:"provider"`
 	ScrollDepth          *float64  `json:"scroll_depth"`
 	Sessions             int       `json:"sessions"`

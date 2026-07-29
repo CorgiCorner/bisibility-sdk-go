@@ -13,7 +13,7 @@ func TestBacklinksEndpointMethods(t *testing.T) {
 		{
 			name: "analyze backlinks sends every query parameter",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.AnalyzeBacklinks(ctx, "proj_1", AnalyzeBacklinksOptions{
+				return c.AnalyzeBacklinks(ctx, "prj_a00000000000000000000000", AnalyzeBacklinksOptions{
 					EstimateOnly:      true,
 					Fresh:             true,
 					IncludeSubdomains: true,
@@ -25,7 +25,7 @@ func TestBacklinksEndpointMethods(t *testing.T) {
 				})
 			},
 			method: http.MethodGet,
-			path:   "/api/v1/projects/proj_1/backlinks",
+			path:   "/api/v1/projects/prj_a00000000000000000000000/backlinks",
 			query:  "estimate_only=true&fresh=true&include_subdomains=true&max_cost_cents=9&mode=one_per_domain&result_limit=300&target=https%3A%2F%2Fexample.com%2Fpricing&target_scope=page",
 			response: map[string]any{
 				"data": backlinksSnapshotJSON(),
@@ -52,12 +52,12 @@ func TestBacklinksEndpointMethods(t *testing.T) {
 		{
 			name: "analyze backlinks omits zero-value optional parameters",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.AnalyzeBacklinks(ctx, "proj_1", AnalyzeBacklinksOptions{
+				return c.AnalyzeBacklinks(ctx, "prj_a00000000000000000000000", AnalyzeBacklinksOptions{
 					Target: "example.com",
 				})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/proj_1/backlinks",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/backlinks",
 			query:    "target=example.com",
 			response: map[string]any{"data": backlinksSnapshotJSON()},
 			want: func(t *testing.T, got any) {
@@ -67,7 +67,7 @@ func TestBacklinksEndpointMethods(t *testing.T) {
 		{
 			name: "load more backlink rows sends required body",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.LoadMoreBacklinkRows(ctx, "proj_1", LoadMoreBacklinkRowsOptions{
+				return c.LoadMoreBacklinkRows(ctx, "prj_a00000000000000000000000", LoadMoreBacklinkRowsOptions{
 					IncludeSubdomains: false,
 					Limit:             100,
 					Target:            "https://example.com/pricing",
@@ -75,7 +75,7 @@ func TestBacklinksEndpointMethods(t *testing.T) {
 				})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/proj_1/backlinks/rows",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/backlinks/rows",
 			body:            `{"target":"https://example.com/pricing","target_scope":"page","include_subdomains":false,"limit":100}`,
 			wantContentType: true,
 			response: map[string]any{

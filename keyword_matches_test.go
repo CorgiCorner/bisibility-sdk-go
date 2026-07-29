@@ -15,7 +15,7 @@ func TestMatchProjectKeywords(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertEqual(t, r.Method, http.MethodPost)
-		assertEqual(t, r.RequestURI, "/api/v1/projects/prj%2F%20one/keyword-matches")
+		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_a00000000000000000000000/keyword-matches")
 		assertEqual(t, r.Header.Get("Content-Type"), "application/json")
 		var input KeywordMatchRequest
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -27,12 +27,12 @@ func TestMatchProjectKeywords(t *testing.T) {
 		writeJSON(t, w, http.StatusOK, map[string]any{
 			"data": []map[string]any{
 				{
-					"keyword_id": "kw_1", "matched_text": "headless cms", "text": " Headless CMS ", "latest_position": 3, "previous_position": 7,
+					"keyword_id": "kw_a00000000000000000000000", "matched_text": "headless cms", "text": " Headless CMS ", "latest_position": 3, "previous_position": 7,
 					"ranking_url": "https://example.com/headless-cms",
 					"market":      map[string]any{"location": "Austin", "location_key": "US/Texas/Austin", "country_code": "US", "device": "mobile"},
 				},
 				{
-					"keyword_id": "kw_2", "matched_text": "seo tool", "text": "SEO Tool", "latest_position": nil, "previous_position": 0,
+					"keyword_id": "kw_b00000000000000000000000", "matched_text": "seo tool", "text": "SEO Tool", "latest_position": nil, "previous_position": 0,
 					"ranking_url": nil,
 					"market":      map[string]any{"location": "United States", "location_key": "US", "country_code": "US", "device": "desktop"},
 				},
@@ -43,13 +43,13 @@ func TestMatchProjectKeywords(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(t, server.URL+"/api/v1")
-	response, err := client.MatchProjectKeywords(context.Background(), "prj/ one", KeywordMatchRequest{Texts: []string{" Headless CMS ", "SEO tool"}})
+	response, err := client.MatchProjectKeywords(context.Background(), "prj_a00000000000000000000000", KeywordMatchRequest{Texts: []string{" Headless CMS ", "SEO tool"}})
 	if err != nil {
 		t.Fatalf("MatchProjectKeywords returned error: %v", err)
 	}
 
 	assertEqual(t, len(response.Data), 2)
-	assertEqual(t, response.Data[0].KeywordID, "kw_1")
+	assertEqual(t, response.Data[0].KeywordID, "kw_a00000000000000000000000")
 	assertEqual(t, response.Data[0].MatchedText, "headless cms")
 	assertEqual(t, response.Data[0].Text, " Headless CMS ")
 	assertEqual(t, *response.Data[0].LatestPosition, 3)
@@ -77,12 +77,12 @@ func TestMatchProjectKeywordsMapsForbidden(t *testing.T) {
 	problem := ProblemDetails{Type: "https://bisibility.dev/problems/forbidden", Title: "Forbidden", Status: http.StatusForbidden, Detail: "You cannot match this project."}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertEqual(t, r.Method, http.MethodPost)
-		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_1/keyword-matches")
+		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_a00000000000000000000000/keyword-matches")
 		writeJSON(t, w, http.StatusForbidden, problem)
 	}))
 	defer server.Close()
 
-	_, err := newTestClient(t, server.URL+"/api/v1").MatchProjectKeywords(context.Background(), "prj_1", KeywordMatchRequest{Texts: []string{"headless cms"}})
+	_, err := newTestClient(t, server.URL+"/api/v1").MatchProjectKeywords(context.Background(), "prj_a00000000000000000000000", KeywordMatchRequest{Texts: []string{"headless cms"}})
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("err = %T, want APIError", err)

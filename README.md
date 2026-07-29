@@ -8,7 +8,7 @@
 > [API reference](https://bisibility.com/docs/api/overview) ·
 > [Roadmap](https://bisibility.com/roadmap)
 >
-> **Status:** In development.
+> **Status:** Published as v0.5.0.
 
 Idiomatic Go client for the Bisibility REST API.
 
@@ -82,7 +82,7 @@ func ptr(value string) *string {
 
 ```go
 client, err := bisibility.NewClient(
-	bisibility.WithAPIKey("bsk_live_..."),
+	bisibility.WithAPIKey("bsb_key_live_..."),
 	bisibility.WithBaseURL("https://bisibility.com/api/v1"),
 	bisibility.WithMaxRetries(2),
 )
@@ -93,11 +93,28 @@ client, err := bisibility.NewClient(
 `bisibility.WithIdempotencyKey("...")`, which maps to the server
 `Idempotency-Key` header.
 
-The client accepts project API keys (`bsk_live_...`) and personal access tokens
-(`bsp_live_...`). For a PAT with multiple project memberships, add
-`bisibility.WithProjectID("prj_abc123")` to send `X-Bisibility-Project` on
-project-implicit routes. PAT methods include `GetMe`, `CreateProject`, token
-self-management, project API-key minting, and webhook CRUD.
+The client accepts project API keys (`bsb_key_live_...` or `bsb_key_test_...`) and personal access
+tokens (`bsb_pat_live_...`). Retired `bsk_` and `bsp_` credentials are rejected locally. For a PAT
+with multiple project memberships, pass a project ID
+returned by `ListProjects` to `bisibility.WithProjectID(projectID)`. The client
+sends it as `X-Bisibility-Project` on project-implicit routes. PAT methods
+include `GetMe`, `CreateProject`, token self-management, project API-key minting,
+and webhook CRUD.
+
+### Public identifiers
+
+All typed resource IDs accepted by client methods are strict public ID v3 values:
+`prefix_[a-z][a-z0-9]{23}`. The SDK rejects raw database IDs, legacy IDs, and
+mixed-case values before it sends an HTTP request. Use `ValidatePublicID` or
+`ValidatePublicIDPrefix` when validating values before calling the client.
+
+The registered namespaces are `al`, `alr`, `audit`, `check`, `cmp`, `conn`, `dwh`, `ferry`,
+`imp`, `inv`, `key`, `kw`, `mbr`, `ntf`, `pat`, `prj`, `sid`, `sig`, `svkw`, `tag`, `usr`,
+`viw`, and `we`. Provider IDs and `location_key` values are not public resource IDs.
+Migration-token secrets are credentials, while `ferry_` identifies the migration-token resource.
+
+The examples below reuse `projectID` and `keywordID` values returned by the API,
+as shown in the quickstart, instead of embedding synthetic resource IDs.
 
 ### Defaults
 
@@ -120,7 +137,7 @@ the check instead; the API responds `202 Accepted` with a rank check in
 status `running`, which you can poll with `GetRankCheckResult`:
 
 ```go
-check, err := client.RunRankCheck(ctx, "kw_1", &bisibility.RunRankCheckInput{Async: true})
+check, err := client.RunRankCheck(ctx, keywordID, &bisibility.RunRankCheckInput{Async: true})
 ```
 
 ### Public cost estimates
@@ -156,7 +173,7 @@ signal, err := client.CreateSignal(ctx, bisibility.CreateSignalInput{
 	Payload: bisibility.JSONValue{"version": "1.2.3"},
 })
 
-signals, err := client.ListSignals(ctx, "prj_1", &bisibility.ListSignalsOptions{
+signals, err := client.ListSignals(ctx, projectID, &bisibility.ListSignalsOptions{
 	Source: bisibility.SignalSourceDeploy,
 	From:   time.Now().AddDate(0, 0, -7),
 })
@@ -176,7 +193,7 @@ guard. Partial auto-mode responses identify each source as `ok`, `failed`, or `s
 optional machine-readable reason. This method requires an API key with write scope.
 
 ```go
-research, err := client.ResearchKeywords(ctx, "prj_1", bisibility.ResearchKeywordsOptions{
+research, err := client.ResearchKeywords(ctx, projectID, bisibility.ResearchKeywordsOptions{
 	Seed:         "rank tracker",
 	Mode:         bisibility.KeywordResearchModeAuto,
 	ResultLimit:  100,
@@ -192,7 +209,7 @@ spending. `MaxCostCents` rejects a paid lookup whose estimate is too high. This 
 API key with write scope.
 
 ```go
-metrics, err := client.GetKeywordMetrics(ctx, "prj_1", bisibility.GetKeywordMetricsInput{
+metrics, err := client.GetKeywordMetrics(ctx, projectID, bisibility.GetKeywordMetricsInput{
 	Keywords: []string{"rank tracker", "seo api"},
 })
 ```
@@ -232,7 +249,7 @@ metrics, err := client.GetKeywordMetrics(ctx, "prj_1", bisibility.GetKeywordMetr
 - Sitemap monitors: `ListSitemapMonitors`, `UpdateSitemapMonitor`
 
 List methods return `ListResponse[T]` with `Meta.NextCursor`. Resource methods
-return typed resources.
+return typed resources. Cursor values are opaque: pass v3 API cursors back unchanged.
 
 `ExportRankHistory` returns a cursor-paginated JSON page by default. Set
 `Format: bisibility.RankHistoryExportFormatCSV` to receive the complete CSV document in the
@@ -242,7 +259,7 @@ Go 1.22 consumers can traverse every cursor list with the corresponding `Iterate
 `Pager`. Filters remain unchanged between pages:
 
 ```go
-pager := client.IterateKeywords(ctx, "prj_1", &bisibility.ListKeywordsOptions{Tag: "api"})
+pager := client.IterateKeywords(ctx, projectID, &bisibility.ListKeywordsOptions{Tag: "api"})
 for pager.Next() {
 	keyword := pager.Item()
 	fmt.Println(keyword.Text)
@@ -271,9 +288,43 @@ status.
 Cloud-import writes authenticate with a migration token minted by
 `MintMigrationToken`, passed as the first argument rather than through the
 client API key. `GetCloudImportCompatibility` is an unauthenticated preflight.
-`UploadCloudImportChunk` sends a typed `CloudImportUploadChunk` as JSON;
+The SDK supports only protocol version 5 and writes that discriminator itself.
+`CloudImportPackage` requires `project_id` plus non-nil `keywords`,
+`alert_rules`, `competitors`, `notification_preferences`, and `saved_views`
+collections. `CreateCloudImportSession` requires a strict `source_project_id`.
+Although the route still says `sessions`, the returned ID and every chunk or
+finalize path use the strict `imp_` public-ID namespace.
+
+`UploadCloudImportChunk` accepts either `CloudImportKeywordsChunk` or
+`CloudImportSectionsChunk`, so the `kind` discriminator is fixed by the Go
+type. Alert-rule targets similarly use `CloudImportKeywordAlertTarget` or
+`CloudImportTagAlertTarget`. The SDK rejects v4 payloads, raw IDs, camel-case
+aliases for snake-case fields, and incomplete required shapes before sending a
+request.
 `UploadCloudImportChunkRaw` streams a pre-serialized JSON body from an
 `io.Reader` and can set `Content-Encoding: gzip` for a compressed chunk.
+
+```go
+session, err := client.CreateCloudImportSession(ctx, migrationToken, bisibility.CloudImportSessionCreate{
+	ChunkCount:      1,
+	SourceProjectID: projectID,
+})
+if err != nil {
+	log.Fatal(err)
+}
+_, err = client.UploadCloudImportChunk(ctx, migrationToken, session.SessionID, 0, bisibility.CloudImportKeywordsChunk{
+	Checksum: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+	Keywords: []bisibility.CloudImportKeyword{{
+		ID:       keywordID,
+		Keyword:  "rank tracker",
+		Device:   bisibility.DeviceDesktop,
+		Location: "United States",
+	}},
+})
+if err != nil {
+	log.Fatal(err)
+}
+```
 
 ## Errors
 
@@ -283,7 +334,7 @@ All SDK-defined errors implement `bisibility.BisibilityError`. Non-2xx API respo
 headers are removed before an API error is exposed.
 
 ```go
-keyword, err := client.GetKeyword(ctx, "kw_missing")
+keyword, err := client.GetKeyword(ctx, "kw_z9y8x7w6v5u4t3s2r1q0p9n8")
 if err != nil {
 	var apiErr *bisibility.APIError
 	if errors.As(err, &apiErr) {

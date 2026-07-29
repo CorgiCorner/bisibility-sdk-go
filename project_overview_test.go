@@ -14,9 +14,9 @@ func TestGetProjectOverview(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertEqual(t, r.Method, http.MethodGet)
-		assertEqual(t, r.RequestURI, "/api/v1/projects/prj%2F%20one/overview?device=mobile&range=90d&tag=priority+tag")
+		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_a00000000000000000000000/overview?device=mobile&range=90d&tag=priority+tag")
 		writeJSON(t, w, http.StatusOK, map[string]any{
-			"project_id":                "prj/ one",
+			"project_id":                "prj_a00000000000000000000000",
 			"tracked_keyword_count":     0,
 			"keywords_added_this_month": 0,
 			"average_position":          nil,
@@ -38,7 +38,7 @@ func TestGetProjectOverview(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(t, server.URL+"/api/v1")
-	overview, err := client.GetProjectOverview(context.Background(), "prj/ one", &ProjectOverviewOptions{
+	overview, err := client.GetProjectOverview(context.Background(), "prj_a00000000000000000000000", &ProjectOverviewOptions{
 		Device: ProjectOverviewDeviceMobile,
 		Range:  ProjectOverviewRange90Days,
 		Tag:    "priority tag",
@@ -47,7 +47,7 @@ func TestGetProjectOverview(t *testing.T) {
 		t.Fatalf("GetProjectOverview returned error: %v", err)
 	}
 
-	assertEqual(t, overview.ProjectID, "prj/ one")
+	assertEqual(t, overview.ProjectID, "prj_a00000000000000000000000")
 	assertEqual(t, overview.TrackedKeywordCount, 0)
 	assertEqual(t, overview.KeywordsAddedThisMonth, 0)
 	if overview.AveragePosition != nil || overview.AveragePositionDelta != nil {
@@ -74,12 +74,12 @@ func TestGetProjectOverviewMapsForbidden(t *testing.T) {
 	problem := ProblemDetails{Type: "https://bisibility.dev/problems/forbidden", Title: "Forbidden", Status: http.StatusForbidden, Detail: "You cannot read this project overview."}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertEqual(t, r.Method, http.MethodGet)
-		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_1/overview")
+		assertEqual(t, r.RequestURI, "/api/v1/projects/prj_a00000000000000000000000/overview")
 		writeJSON(t, w, http.StatusForbidden, problem)
 	}))
 	defer server.Close()
 
-	_, err := newTestClient(t, server.URL+"/api/v1").GetProjectOverview(context.Background(), "prj_1", nil)
+	_, err := newTestClient(t, server.URL+"/api/v1").GetProjectOverview(context.Background(), "prj_a00000000000000000000000", nil)
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("err = %T, want APIError", err)

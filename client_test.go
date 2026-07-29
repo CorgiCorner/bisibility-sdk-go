@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const testAPIKey = "bsk_live_1234567890abcdef"
+const testAPIKey = "bsb_key_test_x"
 
 type capturedRequest struct {
 	Body          string
@@ -417,12 +417,12 @@ func TestProtectedMethods(t *testing.T) {
 	t.Parallel()
 
 	createdAPIKey := CreatedAPIKey{
-		APIKey:      apiKeyFixture("key_new"),
-		MaskedValue: "bsk_live_12345678******cdef",
+		APIKey:      apiKeyFixture("key_c00000000000000000000000"),
+		MaskedValue: "bsb_key_live_12345678******cdef",
 		Token:       testAPIKey,
 	}
-	keyword := keywordFixture("kw_1")
-	check := rankCheckFixture("check_1")
+	keyword := keywordFixture("kw_a00000000000000000000000")
+	check := rankCheckFixture("check_a00000000000000000000000")
 	since := mustTime("2026-01-01T00:00:00Z")
 	until := mustTime("2026-01-31T00:00:00Z")
 	targetURL := "https://example.com/page"
@@ -436,10 +436,10 @@ func TestProtectedMethods(t *testing.T) {
 			call:     func(ctx context.Context, c *Client) (any, error) { return c.ListProjects(ctx) },
 			method:   http.MethodGet,
 			path:     "/api/v1/projects",
-			response: listEnvelope([]any{projectJSON("prj_1")}, ""),
+			response: listEnvelope([]any{projectJSON("prj_a00000000000000000000000")}, ""),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*ListResponse[Project]).Data[0].ID, "prj_1")
+				assertEqual(t, got.(*ListResponse[Project]).Data[0].ID, "prj_a00000000000000000000000")
 				assertEqual(t, got.(*ListResponse[Project]).Data[0].WriteMode, ProjectWriteModeActive)
 			},
 		},
@@ -448,52 +448,54 @@ func TestProtectedMethods(t *testing.T) {
 			call:     func(ctx context.Context, c *Client) (any, error) { return c.Projects(ctx) },
 			method:   http.MethodGet,
 			path:     "/api/v1/projects",
-			response: listResponse(projectFixture("prj_1")),
+			response: listResponse(projectFixture("prj_a00000000000000000000000")),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				assertEqual(t, got.(*ListResponse[Project]).Data[0].Name, "Example")
 			},
 		},
 		{
-			name:     "get project escapes id",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.GetProject(ctx, "prj spaced") },
+			name: "get project escapes id",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.GetProject(ctx, "prj_a00000000000000000000000")
+			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj%20spaced",
-			response: projectFixture("prj spaced"),
+			path:     "/api/v1/projects/prj_a00000000000000000000000",
+			response: projectFixture("prj_a00000000000000000000000"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*Project).ID, "prj spaced")
+				assertEqual(t, got.(*Project).ID, "prj_a00000000000000000000000")
 			},
 		},
 		{
 			name: "update project",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateProject(ctx, "prj_1", UpdateProjectInput{
+				return c.UpdateProject(ctx, "prj_a00000000000000000000000", UpdateProjectInput{
 					Domain: strPtr("renamed.example"),
 					Name:   strPtr("Renamed"),
 				}, WithIdempotencyKey("idem_project"))
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1",
+			path:            "/api/v1/projects/prj_a00000000000000000000000",
 			body:            `{"domain":"renamed.example","name":"Renamed"}`,
-			response:        projectJSON("prj_1"),
+			response:        projectJSON("prj_a00000000000000000000000"),
 			idempotencyKey:  "idem_project",
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*Project).ID, "prj_1")
+				assertEqual(t, got.(*Project).ID, "prj_a00000000000000000000000")
 				assertEqual(t, got.(*Project).WriteMode, ProjectWriteModeActive)
 			},
 		},
 		{
 			name: "update project name only",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateProject(ctx, "prj_1", UpdateProjectInput{Name: strPtr("Renamed")})
+				return c.UpdateProject(ctx, "prj_a00000000000000000000000", UpdateProjectInput{Name: strPtr("Renamed")})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1",
+			path:            "/api/v1/projects/prj_a00000000000000000000000",
 			body:            `{"name":"Renamed"}`,
-			response:        projectJSON("prj_1"),
+			response:        projectJSON("prj_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -503,14 +505,14 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "delete project escapes id",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.DeleteProject(ctx, "prj spaced")
+				return c.DeleteProject(ctx, "prj_a00000000000000000000000")
 			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/projects/prj%20spaced",
-			response: projectJSON("prj spaced"),
+			path:     "/api/v1/projects/prj_a00000000000000000000000",
+			response: projectJSON("prj_a00000000000000000000000"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*Project).ID, "prj spaced")
+				assertEqual(t, got.(*Project).ID, "prj_a00000000000000000000000")
 			},
 		},
 		{
@@ -518,7 +520,7 @@ func TestProtectedMethods(t *testing.T) {
 			call: func(ctx context.Context, c *Client) (any, error) {
 				jitter := 30
 				serpStopOnMatch := true
-				return c.UpdateProjectDefaults(ctx, "prj_1", ProjectDefaultsPatch{
+				return c.UpdateProjectDefaults(ctx, "prj_a00000000000000000000000", ProjectDefaultsPatch{
 					City:            strPtr("Austin"),
 					Country:         "United States",
 					Device:          DeviceMobile,
@@ -529,14 +531,14 @@ func TestProtectedMethods(t *testing.T) {
 				})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/defaults",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/defaults",
 			body:            `{"city":"Austin","country":"United States","device":"mobile","frequency":"daily","jitter_minutes":30,"serp_stop_on_match":true,"timezone":"America/Chicago"}`,
-			response:        projectDefaultsJSON("prj_1"),
+			response:        projectDefaultsJSON("prj_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				defaults := got.(*ProjectDefaults)
-				assertEqual(t, defaults.ProjectID, "prj_1")
+				assertEqual(t, defaults.ProjectID, "prj_a00000000000000000000000")
 				assertEqual(t, defaults.Country, "United States")
 				assertEqual(t, *defaults.City, "Austin")
 				assertEqual(t, defaults.Device, DeviceMobile)
@@ -551,15 +553,15 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "update project defaults by location key",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateProjectDefaults(ctx, "prj_1", ProjectDefaultsPatch{
+				return c.UpdateProjectDefaults(ctx, "prj_a00000000000000000000000", ProjectDefaultsPatch{
 					Frequency:   RankCheckFrequencyWeekly,
 					LocationKey: "US/Texas/Austin",
 				})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/defaults",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/defaults",
 			body:            `{"frequency":"weekly","location_key":"US/Texas/Austin"}`,
-			response:        projectDefaultsJSON("prj_1"),
+			response:        projectDefaultsJSON("prj_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -575,7 +577,7 @@ func TestProtectedMethods(t *testing.T) {
 			path:   "/api/v1/api-keys",
 			query:  "cursor=cursor+1&limit=10",
 			response: ListResponse[APIKey]{
-				Data: []APIKey{apiKeyFixture("key_1")},
+				Data: []APIKey{apiKeyFixture("key_a00000000000000000000000")},
 				Meta: ListMeta{NextCursor: strPtr("cursor_2")},
 			},
 			want: func(t *testing.T, got any) {
@@ -601,20 +603,22 @@ func TestProtectedMethods(t *testing.T) {
 			},
 		},
 		{
-			name:     "revoke api key",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.RevokeAPIKey(ctx, "key_1") },
+			name: "revoke api key",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.RevokeAPIKey(ctx, "key_a00000000000000000000000")
+			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/api-keys/key_1",
-			response: apiKeyFixture("key_1"),
+			path:     "/api/v1/api-keys/key_a00000000000000000000000",
+			response: apiKeyFixture("key_a00000000000000000000000"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*APIKey).ID, "key_1")
+				assertEqual(t, got.(*APIKey).ID, "key_a00000000000000000000000")
 			},
 		},
 		{
 			name: "list keywords with filters",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListKeywords(ctx, "prj_1", &ListKeywordsOptions{
+				return c.ListKeywords(ctx, "prj_a00000000000000000000000", &ListKeywordsOptions{
 					Country:    "United States",
 					Cursor:     "cursor_1",
 					Device:     DeviceDesktop,
@@ -629,7 +633,7 @@ func TestProtectedMethods(t *testing.T) {
 				})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/keywords",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/keywords",
 			query:    "cursor=cursor_1&filter%5Bcountry%5D=United+States&filter%5Bdevice%5D=desktop&filter%5Bintent%5D=transactional&filter%5Bposition_gt%5D=3&filter%5Bposition_lt%5D=10&filter%5Btag%5D=Product&filter%5Btopic%5D=Rank+tracking&limit=25&search=rank+tracker&sort=-updated_at",
 			response: listResponse(keyword),
 			want: func(t *testing.T, got any) {
@@ -640,21 +644,21 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "keywords list alias",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.KeywordsList(ctx, "prj_1", &ListKeywordsOptions{Limit: 5})
+				return c.KeywordsList(ctx, "prj_a00000000000000000000000", &ListKeywordsOptions{Limit: 5})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/keywords",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/keywords",
 			query:    "limit=5",
 			response: listResponse(keyword),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*ListResponse[Keyword]).Data[0].ID, "kw_1")
+				assertEqual(t, got.(*ListResponse[Keyword]).Data[0].ID, "kw_a00000000000000000000000")
 			},
 		},
 		{
 			name: "create keywords",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.CreateKeywords(ctx, "prj_1", CreateKeywordsInput{Keywords: []CreateKeywordInput{{
+				return c.CreateKeywords(ctx, "prj_a00000000000000000000000", CreateKeywordsInput{Keywords: []CreateKeywordInput{{
 					Keyword:   "rank tracker",
 					Schedule:  &KeywordScheduleInput{CronExpression: nil, Frequency: RankCheckFrequencyDaily},
 					Tags:      []string{"Product"},
@@ -662,7 +666,7 @@ func TestProtectedMethods(t *testing.T) {
 				}}}, WithIdempotencyKey("idem_keywords"))
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/keywords",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/keywords",
 			body:            `{"keywords":[{"keyword":"rank tracker","schedule":{"cronExpression":null,"frequency":"daily"},"tags":["Product"],"target_url":"https://example.com/page"}]}`,
 			response:        createKeywordsResponse(keyword),
 			status:          http.StatusCreated,
@@ -676,10 +680,10 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "keywords create alias",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.KeywordsCreate(ctx, "prj_1", CreateKeywordsInput{Keywords: []CreateKeywordInput{{Keyword: "rank tracker"}}})
+				return c.KeywordsCreate(ctx, "prj_a00000000000000000000000", CreateKeywordsInput{Keywords: []CreateKeywordInput{{Keyword: "rank tracker"}}})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/keywords",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/keywords",
 			body:            `{"keywords":[{"keyword":"rank tracker"}]}`,
 			response:        createKeywordsResponse(keyword),
 			status:          http.StatusCreated,
@@ -692,10 +696,10 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "add keywords array body",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.AddKeywords(ctx, "prj_1", []CreateKeywordInput{{Keyword: "rank tracker", Tags: []string{"Product"}}})
+				return c.AddKeywords(ctx, "prj_a00000000000000000000000", []CreateKeywordInput{{Keyword: "rank tracker", Tags: []string{"Product"}}})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/keywords",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/keywords",
 			body:            `[{"keyword":"rank tracker","tags":["Product"]}]`,
 			response:        createKeywordsResponse(keyword),
 			status:          http.StatusCreated,
@@ -710,7 +714,7 @@ func TestProtectedMethods(t *testing.T) {
 			call: func(ctx context.Context, c *Client) (any, error) {
 				intent := "commercial"
 				topic := "tooling"
-				return c.CreateKeywords(ctx, "prj_1", CreateKeywordsInput{Keywords: []CreateKeywordInput{{
+				return c.CreateKeywords(ctx, "prj_a00000000000000000000000", CreateKeywordsInput{Keywords: []CreateKeywordInput{{
 					Keyword:     "rank tracker",
 					City:        "Austin",
 					Country:     "United States",
@@ -720,7 +724,7 @@ func TestProtectedMethods(t *testing.T) {
 				}}})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/keywords",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/keywords",
 			body:            `{"keywords":[{"keyword":"rank tracker","city":"Austin","country":"United States","location_key":"US/Texas/Austin","intent":"commercial","topic":"tooling"}]}`,
 			response:        createKeywordsResponseJSON(),
 			status:          http.StatusCreated,
@@ -737,14 +741,16 @@ func TestProtectedMethods(t *testing.T) {
 			},
 		},
 		{
-			name:     "get keyword",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.GetKeyword(ctx, "kw_1") },
+			name: "get keyword",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.GetKeyword(ctx, "kw_a00000000000000000000000")
+			},
 			method:   http.MethodGet,
-			path:     "/api/v1/keywords/kw_1",
-			response: keywordJSON("kw_1"),
+			path:     "/api/v1/keywords/kw_a00000000000000000000000",
+			response: keywordJSON("kw_a00000000000000000000000"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*Keyword).ID, "kw_1")
+				assertEqual(t, got.(*Keyword).ID, "kw_a00000000000000000000000")
 				assertEqual(t, *got.(*Keyword).Intent, "commercial")
 				if got.(*Keyword).Topic != nil {
 					t.Fatalf("topic = %v, want nil", *got.(*Keyword).Topic)
@@ -756,7 +762,7 @@ func TestProtectedMethods(t *testing.T) {
 			call: func(ctx context.Context, c *Client) (any, error) {
 				city := "Austin"
 				locationKey := "US/Texas/Austin"
-				return c.UpdateKeyword(ctx, "kw_1", UpdateKeywordInput{
+				return c.UpdateKeyword(ctx, "kw_a00000000000000000000000", UpdateKeywordInput{
 					City:        &city,
 					Intent:      NullString(),
 					LocationKey: &locationKey,
@@ -764,50 +770,52 @@ func TestProtectedMethods(t *testing.T) {
 				})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/keywords/kw_1",
+			path:            "/api/v1/keywords/kw_a00000000000000000000000",
 			body:            `{"city":"Austin","intent":null,"location_key":"US/Texas/Austin","topic":"tooling"}`,
-			response:        keywordJSON("kw_1"),
+			response:        keywordJSON("kw_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*Keyword).ID, "kw_1")
+				assertEqual(t, got.(*Keyword).ID, "kw_a00000000000000000000000")
 			},
 		},
 		{
 			name: "update keyword",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateKeyword(ctx, "kw_1", UpdateKeywordInput{Keyword: &newKeywordText, Tags: tags})
+				return c.UpdateKeyword(ctx, "kw_a00000000000000000000000", UpdateKeywordInput{Keyword: &newKeywordText, Tags: tags})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/keywords/kw_1",
+			path:            "/api/v1/keywords/kw_a00000000000000000000000",
 			body:            `{"keyword":"new text","tags":["API"]}`,
-			response:        keywordFixture("kw_1"),
+			response:        keywordFixture("kw_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*Keyword).ID, "kw_1")
+				assertEqual(t, got.(*Keyword).ID, "kw_a00000000000000000000000")
 			},
 		},
 		{
 			name: "set keyword target url to null",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.SetKeywordTargetURL(ctx, "kw_1", nil)
+				return c.SetKeywordTargetURL(ctx, "kw_a00000000000000000000000", nil)
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/keywords/kw_1",
+			path:            "/api/v1/keywords/kw_a00000000000000000000000",
 			body:            `{"target_url":null}`,
-			response:        keywordFixture("kw_1"),
+			response:        keywordFixture("kw_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*Keyword).ID, "kw_1")
+				assertEqual(t, got.(*Keyword).ID, "kw_a00000000000000000000000")
 			},
 		},
 		{
-			name:     "delete keyword",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.DeleteKeyword(ctx, "kw_1") },
+			name: "delete keyword",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.DeleteKeyword(ctx, "kw_a00000000000000000000000")
+			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/keywords/kw_1",
+			path:     "/api/v1/keywords/kw_a00000000000000000000000",
 			response: keyword,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -817,12 +825,12 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "bulk update keywords",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.BulkUpdateKeywords(ctx, KeywordBulkInput{KeywordIDs: []string{"kw_1"}, Operation: KeywordBulkOperationAddTags, Tags: []string{"Product"}})
+				return c.BulkUpdateKeywords(ctx, KeywordBulkInput{KeywordIDs: []string{"kw_a00000000000000000000000"}, Operation: KeywordBulkOperationAddTags, Tags: []string{"Product"}})
 			},
 			method:          http.MethodPost,
 			path:            "/api/v1/keywords/bulk",
-			body:            `{"keyword_ids":["kw_1"],"operation":"add_tags","tags":["Product"]}`,
-			response:        KeywordBulkResponse{Operation: KeywordBulkOperationAddTags, Results: []KeywordBulkItemResult{{KeywordID: "kw_1", Status: "updated"}}},
+			body:            `{"keyword_ids":["kw_a00000000000000000000000"],"operation":"add_tags","tags":["Product"]}`,
+			response:        KeywordBulkResponse{Operation: KeywordBulkOperationAddTags, Results: []KeywordBulkItemResult{{KeywordID: "kw_a00000000000000000000000", Status: "updated"}}},
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -832,12 +840,12 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "bulk set target url null",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.BulkUpdateKeywords(ctx, KeywordBulkInput{KeywordIDs: []string{"kw_1"}, Operation: KeywordBulkOperationSetTargetURL, TargetURL: NullString()})
+				return c.BulkUpdateKeywords(ctx, KeywordBulkInput{KeywordIDs: []string{"kw_a00000000000000000000000"}, Operation: KeywordBulkOperationSetTargetURL, TargetURL: NullString()})
 			},
 			method:          http.MethodPost,
 			path:            "/api/v1/keywords/bulk",
-			body:            `{"keyword_ids":["kw_1"],"operation":"set_target_url","target_url":null}`,
-			response:        KeywordBulkResponse{Operation: KeywordBulkOperationSetTargetURL, Results: []KeywordBulkItemResult{{KeywordID: "kw_1", Status: "updated"}}},
+			body:            `{"keyword_ids":["kw_a00000000000000000000000"],"operation":"set_target_url","target_url":null}`,
+			response:        KeywordBulkResponse{Operation: KeywordBulkOperationSetTargetURL, Results: []KeywordBulkItemResult{{KeywordID: "kw_a00000000000000000000000", Status: "updated"}}},
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -847,12 +855,12 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "bulk set frequency",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.BulkUpdateKeywords(ctx, KeywordBulkInput{KeywordIDs: []string{"kw_1"}, Operation: KeywordBulkOperationSetFrequency, Frequency: &frequency})
+				return c.BulkUpdateKeywords(ctx, KeywordBulkInput{KeywordIDs: []string{"kw_a00000000000000000000000"}, Operation: KeywordBulkOperationSetFrequency, Frequency: &frequency})
 			},
 			method:          http.MethodPost,
 			path:            "/api/v1/keywords/bulk",
-			body:            `{"frequency":"daily","keyword_ids":["kw_1"],"operation":"set_frequency"}`,
-			response:        KeywordBulkResponse{Operation: KeywordBulkOperationSetFrequency, Results: []KeywordBulkItemResult{{KeywordID: "kw_1", Status: "updated"}}},
+			body:            `{"frequency":"daily","keyword_ids":["kw_a00000000000000000000000"],"operation":"set_frequency"}`,
+			response:        KeywordBulkResponse{Operation: KeywordBulkOperationSetFrequency, Results: []KeywordBulkItemResult{{KeywordID: "kw_a00000000000000000000000", Status: "updated"}}},
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -862,7 +870,7 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "list rank checks",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListRankChecks(ctx, "kw_1", &ListRankChecksOptions{
+				return c.ListRankChecks(ctx, "kw_a00000000000000000000000", &ListRankChecksOptions{
 					Cursor: "cursor_1",
 					Limit:  5,
 					Since:  since,
@@ -871,21 +879,21 @@ func TestProtectedMethods(t *testing.T) {
 				})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/keywords/kw_1/rank-checks",
+			path:     "/api/v1/keywords/kw_a00000000000000000000000/rank-checks",
 			query:    "cursor=cursor_1&limit=5&since=2026-01-01T00%3A00%3A00Z&status=failed&until=2026-01-31T00%3A00%3A00Z",
 			response: listResponse(check),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*ListResponse[RankCheck]).Data[0].ID, "check_1")
+				assertEqual(t, got.(*ListResponse[RankCheck]).Data[0].ID, "check_a00000000000000000000000")
 			},
 		},
 		{
 			name: "rank history alias",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RankHistory(ctx, "kw_1", &ListRankChecksOptions{Limit: 2})
+				return c.RankHistory(ctx, "kw_a00000000000000000000000", &ListRankChecksOptions{Limit: 2})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/keywords/kw_1/rank-checks",
+			path:     "/api/v1/keywords/kw_a00000000000000000000000/rank-checks",
 			query:    "limit=2",
 			response: listResponse(check),
 			want: func(t *testing.T, got any) {
@@ -896,10 +904,10 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "run rank check",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RunRankCheck(ctx, "kw_1", &RunRankCheckInput{ProviderID: "dataforseo"})
+				return c.RunRankCheck(ctx, "kw_a00000000000000000000000", &RunRankCheckInput{ProviderID: "dataforseo"})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/keywords/kw_1/checks",
+			path:            "/api/v1/keywords/kw_a00000000000000000000000/checks",
 			body:            `{"provider_id":"dataforseo"}`,
 			response:        check,
 			status:          http.StatusCreated,
@@ -910,28 +918,30 @@ func TestProtectedMethods(t *testing.T) {
 			},
 		},
 		{
-			name:            "run check alias without body",
-			call:            func(ctx context.Context, c *Client) (any, error) { return c.RunCheck(ctx, "kw_1", nil) },
+			name: "run check alias without body",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.RunCheck(ctx, "kw_a00000000000000000000000", nil)
+			},
 			method:          http.MethodPost,
-			path:            "/api/v1/keywords/kw_1/checks",
+			path:            "/api/v1/keywords/kw_a00000000000000000000000/checks",
 			response:        check,
 			status:          http.StatusCreated,
 			wantNoBody:      true,
 			wantContentType: false,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RankCheck).ID, "check_1")
+				assertEqual(t, got.(*RankCheck).ID, "check_a00000000000000000000000")
 			},
 		},
 		{
 			name: "run rank check async",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RunRankCheck(ctx, "kw_1", &RunRankCheckInput{Async: true})
+				return c.RunRankCheck(ctx, "kw_a00000000000000000000000", &RunRankCheckInput{Async: true})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/keywords/kw_1/checks",
+			path:            "/api/v1/keywords/kw_a00000000000000000000000/checks",
 			query:           "async=true",
-			response:        runningRankCheckJSON("check_2"),
+			response:        runningRankCheckJSON("check_b00000000000000000000000"),
 			status:          http.StatusAccepted,
 			wantNoBody:      true,
 			wantContentType: false,
@@ -943,39 +953,41 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "run rank check async with provider",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RunRankCheck(ctx, "kw_1", &RunRankCheckInput{Async: true, ProviderID: "dataforseo"})
+				return c.RunRankCheck(ctx, "kw_a00000000000000000000000", &RunRankCheckInput{Async: true, ProviderID: "dataforseo"})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/keywords/kw_1/checks",
+			path:            "/api/v1/keywords/kw_a00000000000000000000000/checks",
 			query:           "async=true",
 			body:            `{"provider_id":"dataforseo"}`,
-			response:        runningRankCheckJSON("check_2"),
+			response:        runningRankCheckJSON("check_b00000000000000000000000"),
 			status:          http.StatusAccepted,
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RankCheck).ID, "check_2")
+				assertEqual(t, got.(*RankCheck).ID, "check_b00000000000000000000000")
 			},
 		},
 		{
-			name:     "get rank check result",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.GetRankCheckResult(ctx, "check_1") },
+			name: "get rank check result",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.GetRankCheckResult(ctx, "check_a00000000000000000000000")
+			},
 			method:   http.MethodGet,
-			path:     "/api/v1/rank-checks/check_1",
+			path:     "/api/v1/rank-checks/check_a00000000000000000000000",
 			response: check,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RankCheck).KeywordID, "kw_1")
+				assertEqual(t, got.(*RankCheck).KeywordID, "kw_a00000000000000000000000")
 			},
 		},
 		{
 			name: "get failed rank check with attempts",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.GetRankCheckResult(ctx, "check_3")
+				return c.GetRankCheckResult(ctx, "check_c00000000000000000000000")
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/rank-checks/check_3",
-			response: failedRankCheckJSON("check_3"),
+			path:     "/api/v1/rank-checks/check_c00000000000000000000000",
+			response: failedRankCheckJSON("check_c00000000000000000000000"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				result := got.(*RankCheck)
@@ -1045,7 +1057,7 @@ func TestPerRequestHeaderOverridesDefaultContentType(t *testing.T) {
 		if got := r.Header.Get("Content-Type"); got != "application/vnd.bisibility+json" {
 			t.Fatalf("Content-Type = %q", got)
 		}
-		writeJSON(t, w, http.StatusCreated, apiKeyFixture("key_new"))
+		writeJSON(t, w, http.StatusCreated, apiKeyFixture("key_c00000000000000000000000"))
 	}))
 	defer server.Close()
 
@@ -1069,7 +1081,7 @@ func TestEmptySuccessfulJSONResponseReturnsNil(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(t, server.URL+"/api/v1")
-	keyword, err := client.DeleteKeyword(context.Background(), "kw_1")
+	keyword, err := client.DeleteKeyword(context.Background(), "kw_a00000000000000000000000")
 	if err != nil {
 		t.Fatalf("DeleteKeyword returned error: %v", err)
 	}
@@ -1128,7 +1140,7 @@ func TestClientErrors(t *testing.T) {
 		defer server.Close()
 
 		client := newTestClient(t, server.URL+"/api/v1")
-		_, err := client.UpdateProject(context.Background(), "prj_1", UpdateProjectInput{})
+		_, err := client.UpdateProject(context.Background(), "prj_a00000000000000000000000", UpdateProjectInput{})
 		assertConfigurationError(t, err)
 	})
 
@@ -1153,7 +1165,7 @@ func TestClientErrors(t *testing.T) {
 			},
 		}
 		for name, input := range inputs {
-			_, err := client.UpdateProjectDefaults(context.Background(), "prj_1", input)
+			_, err := client.UpdateProjectDefaults(context.Background(), "prj_a00000000000000000000000", input)
 			t.Run(name, func(t *testing.T) {
 				assertConfigurationError(t, err)
 			})
@@ -1177,7 +1189,7 @@ func TestAPIErrorPaths(t *testing.T) {
 		Title:    "Not found",
 		Status:   http.StatusNotFound,
 		Detail:   "Keyword not found.",
-		Instance: "urn:bisibility:api:v1:/api/v1/keywords/kw_missing",
+		Instance: "urn:bisibility:api:v1:/api/v1/keywords/kw_z00000000000000000000000",
 		DocsURL:  "https://bisibility.com/docs/api/errors#not_found",
 	}
 
@@ -1264,7 +1276,7 @@ func TestAPIErrorPaths(t *testing.T) {
 			defer server.Close()
 
 			client := newTestClient(t, server.URL+"/api/v1")
-			_, err := client.GetKeyword(context.Background(), "kw_missing")
+			_, err := client.GetKeyword(context.Background(), "kw_z00000000000000000000000")
 			var apiErr *APIError
 			if !errors.As(err, &apiErr) {
 				t.Fatalf("err = %T, want APIError", err)
@@ -1410,6 +1422,16 @@ func TestDefaultHTTPClientTimeout(t *testing.T) {
 	}
 	if client.httpClient != custom {
 		t.Fatal("WithHTTPClient must override the default client")
+	}
+}
+
+func TestWithAPIKeyRejectsRetiredCredentials(t *testing.T) {
+	t.Parallel()
+
+	for _, credential := range []string{"bsk_live_legacy", "bsk_test_legacy", "bsp_live_legacy", "opaque-secret"} {
+		if _, err := NewClient(WithAPIKey(credential)); err == nil {
+			t.Fatalf("WithAPIKey(%q) succeeded", credential)
+		}
 	}
 }
 
@@ -1567,7 +1589,7 @@ func apiKeyFixture(id string) APIKey {
 	return APIKey{
 		ID:        id,
 		Name:      "Production",
-		Prefix:    "bsk_live_12345678",
+		Prefix:    "bsb_key_live_12345678",
 		CreatedAt: mustTime("2026-01-01T00:00:00Z"),
 	}
 }
@@ -1578,7 +1600,7 @@ func keywordFixture(id string) Keyword {
 	target := "https://example.com/page"
 	return Keyword{
 		ID:               id,
-		ProjectID:        "prj_1",
+		ProjectID:        "prj_a00000000000000000000000",
 		Text:             "rank tracker",
 		Country:          "United States",
 		Location:         "United States",
@@ -1614,7 +1636,7 @@ func keywordJSON(id string) map[string]any {
 		"latest_position":   4,
 		"location":          "United States",
 		"previous_position": 8,
-		"project_id":        "prj_1",
+		"project_id":        "prj_a00000000000000000000000",
 		"ranking_url":       "https://example.com/page",
 		"schedule":          nil,
 		"tags":              []string{"Product"},
@@ -1629,7 +1651,7 @@ func keywordJSON(id string) map[string]any {
 // (lib/api/keyword-create.ts), including per-result and top-level warnings.
 func createKeywordsResponseJSON() map[string]any {
 	warning := "City not found; tracking at country level."
-	keyword := keywordJSON("kw_1")
+	keyword := keywordJSON("kw_a00000000000000000000000")
 	keyword["topic"] = "tooling"
 	return map[string]any{
 		"created": 1,
@@ -1650,7 +1672,7 @@ func runningRankCheckJSON(id string) map[string]any {
 		"cost_cents":        nil,
 		"error":             nil,
 		"id":                id,
-		"keyword_id":        "kw_1",
+		"keyword_id":        "kw_a00000000000000000000000",
 		"position":          nil,
 		"previous_position": nil,
 		"provider":          "primary",
@@ -1671,7 +1693,7 @@ func failedRankCheckJSON(id string) map[string]any {
 		"cost_cents":        nil,
 		"error":             "All providers failed.",
 		"id":                id,
-		"keyword_id":        "kw_1",
+		"keyword_id":        "kw_a00000000000000000000000",
 		"position":          nil,
 		"previous_position": nil,
 		"provider":          "dataforseo",
@@ -1687,7 +1709,7 @@ func rankCheckFixture(id string) RankCheck {
 	target := "https://example.com/page"
 	return RankCheck{
 		ID:               id,
-		KeywordID:        "kw_1",
+		KeywordID:        "kw_a00000000000000000000000",
 		CheckedAt:        mustTime("2026-01-06T00:00:00Z"),
 		CostCents:        &cost,
 		Position:         &position,

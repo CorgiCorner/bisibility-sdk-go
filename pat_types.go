@@ -47,7 +47,7 @@ type PersonalAccessToken struct {
 }
 
 // CreatedPersonalAccessToken is returned once when minting a personal access
-// token. Token carries the raw bsp_ secret and is never shown again.
+// token. Token carries the raw bsb_pat_live_ secret and is never shown again.
 type CreatedPersonalAccessToken struct {
 	PersonalAccessToken
 	MaskedValue string `json:"masked_value"`

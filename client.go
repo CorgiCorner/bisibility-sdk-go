@@ -24,7 +24,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.4.1"
+const Version = "0.5.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -57,6 +57,16 @@ type Option func(*Client) error
 // WithAPIKey configures the bearer API key used for protected API methods.
 func WithAPIKey(apiKey string) Option {
 	return func(c *Client) error {
+		validPrefix := false
+		for _, prefix := range []string{"bsb_key_live_", "bsb_key_test_", "bsb_pat_live_", "mig_"} {
+			if strings.HasPrefix(apiKey, prefix) {
+				validPrefix = true
+				break
+			}
+		}
+		if apiKey != "" && !validPrefix {
+			return &ConfigurationError{Message: "apiKey must use a current bsb_key_live_, bsb_key_test_, bsb_pat_live_, or mig_ prefix."}
+		}
 		c.apiKey = apiKey
 		return nil
 	}
@@ -100,13 +110,13 @@ func WithDefaultHeader(key, value string) Option {
 const projectHeader = "X-Bisibility-Project"
 
 // WithProjectID configures the project targeted by personal access token
-// requests on routes without a project in the path. The project id or public
-// id is sent as the X-Bisibility-Project header with every request; override
-// it per request with WithRequestHeader.
+// requests on routes without a project in the path. A strict public project ID
+// is sent as the X-Bisibility-Project header with every request; override it
+// per request with WithRequestHeader.
 func WithProjectID(projectID string) Option {
 	return func(c *Client) error {
-		if strings.TrimSpace(projectID) == "" {
-			return &ConfigurationError{Message: "projectID cannot be empty."}
+		if err := requirePublicID(projectID, "projectID", PublicIDPrefixProject); err != nil {
+			return err
 		}
 		c.headers.Set(projectHeader, projectID)
 		return nil
@@ -511,6 +521,15 @@ func requestJSON[T any](c *Client, ctx context.Context, method, path string, con
 			URL:        mustBuildURL(c, path, config.query),
 		}
 	}
+	if err := validateResponsePublicIDs(&out); err != nil {
+		return nil, &ResponseError{
+			Body:       string(body),
+			Cause:      fmt.Errorf("public ID response contract: %w", err),
+			Method:     method,
+			StatusCode: statusCode,
+			URL:        mustBuildURL(c, path, config.query),
+		}
+	}
 
 	return &out, nil
 }
@@ -527,6 +546,15 @@ func requestText(c *Client, ctx context.Context, method, path string, config req
 func (c *Client) do(ctx context.Context, method, path string, config requestConfig) ([]byte, int, error) {
 	if ctx == nil {
 		return nil, 0, &ConfigurationError{Message: "context cannot be nil."}
+	}
+	if err := validateRequestIdentifiers(path, config.query, config.body); err != nil {
+		return nil, 0, err
+	}
+	if err := validateProjectHeader(c.headers); err != nil {
+		return nil, 0, err
+	}
+	if err := validateProjectHeader(config.headers); err != nil {
+		return nil, 0, err
 	}
 	if config.auth && c.apiKey == "" {
 		return nil, 0, &ConfigurationError{Message: "apiKey is required for this Bisibility API method."}

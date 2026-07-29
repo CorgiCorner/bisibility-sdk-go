@@ -100,6 +100,7 @@ type CreateAlertRuleInput struct {
 	ConditionType     AlertConditionType `json:"condition_type"`
 	Enabled           *bool              `json:"enabled,omitempty"`
 	Name              string             `json:"name"`
+	RecipientIDs      []string           `json:"recipient_ids,omitempty"`
 	SERPFeature       *string            `json:"serp_feature,omitempty"`
 	TargetIDs         []string           `json:"target_ids,omitempty"`
 	TargetType        AlertTargetType    `json:"target_type,omitempty"`
@@ -110,18 +111,9 @@ type CreateAlertRuleInput struct {
 // UpdateAlertRuleInput updates an alert rule.
 type UpdateAlertRuleInput = CreateAlertRuleInput
 
-// AlertRuleTarget describes one target attached to an alert rule.
-type AlertRuleTarget struct {
-	ID        string  `json:"id,omitempty"`
-	KeywordID *string `json:"keyword_id,omitempty"`
-	RuleID    string  `json:"rule_id,omitempty"`
-	TagID     *string `json:"tag_id,omitempty"`
-}
-
 // AlertRule is an alert rule returned by list, create, and update endpoints.
 type AlertRule struct {
 	ID                string             `json:"id"`
-	ProjectID         string             `json:"project_id,omitempty"`
 	Name              string             `json:"name"`
 	Channel           string             `json:"channel,omitempty"`
 	Channels          []AlertChannel     `json:"channels,omitempty"`
@@ -130,16 +122,15 @@ type AlertRule struct {
 	ConditionType     AlertConditionType `json:"condition_type,omitempty"`
 	CompetitorDomain  *string            `json:"competitor_domain,omitempty"`
 	CreatedAt         *time.Time         `json:"created_at,omitempty"`
-	CreatedByID       *string            `json:"created_by_id,omitempty"`
 	Enabled           bool               `json:"enabled"`
 	Fires             string             `json:"fires,omitempty"`
 	Period            string             `json:"period,omitempty"`
+	RecipientIDs      []string           `json:"recipient_ids"`
 	Scope             string             `json:"scope,omitempty"`
 	SERPFeature       *string            `json:"serp_feature,omitempty"`
 	Severity          AlertSeverity      `json:"severity,omitempty"`
 	Status            AlertRuleStatus    `json:"status,omitempty"`
 	TargetIDs         []string           `json:"target_ids,omitempty"`
-	Targets           []AlertRuleTarget  `json:"targets,omitempty"`
 	TargetType        AlertTargetType    `json:"target_type,omitempty"`
 	ThresholdPosition *int               `json:"threshold_position,omitempty"`
 	TopN              *int               `json:"top_n,omitempty"`
@@ -221,7 +212,6 @@ const (
 // SitemapMonitorLatestSnapshot summarizes the most recent sitemap fetch.
 type SitemapMonitorLatestSnapshot struct {
 	FetchedAt  time.Time `json:"fetched_at"`
-	ID         string    `json:"id"`
 	SitemapURL string    `json:"sitemap_url"`
 	URLCount   int       `json:"url_count"`
 }

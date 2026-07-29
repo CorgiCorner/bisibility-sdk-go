@@ -7,7 +7,7 @@ import (
 )
 
 // GetMe returns the authenticated user and project memberships. Only
-// personal access tokens (bsp_) may call this method.
+// personal access tokens (bsb_pat_) may call this method.
 func (c *Client) GetMe(ctx context.Context, options ...RequestOption) (*Me, error) {
 	return requestJSON[Me](c, ctx, http.MethodGet, "/me", newRequestConfig(options...))
 }
@@ -26,7 +26,7 @@ func (c *Client) ListMyTokens(ctx context.Context, options ...RequestOption) (*L
 	return requestJSON[ListResponse[PersonalAccessToken]](c, ctx, http.MethodGet, "/me/tokens", newRequestConfig(options...))
 }
 
-// CreateMyToken mints a personal access token. The raw bsp_ secret is only
+// CreateMyToken mints a personal access token. The raw bsb_pat_ secret is only
 // returned once in the Token field. Requires a personal access token with
 // admin tier or an OAuth access token bearing the tokens:write scope.
 func (c *Client) CreateMyToken(ctx context.Context, input CreateMyTokenInput, options ...RequestOption) (*CreatedPersonalAccessToken, error) {
@@ -58,7 +58,7 @@ func (c *Client) ListProjectAPIKeys(ctx context.Context, projectID string, pagin
 }
 
 // CreateProjectAPIKey mints a project API key using the nested route. The raw
-// bsk_ secret is only returned once in the Token field.
+// bsb_key_ secret is only returned once in the Token field.
 func (c *Client) CreateProjectAPIKey(ctx context.Context, projectID string, input CreateAPIKeyInput, options ...RequestOption) (*CreatedAPIKey, error) {
 	config := newRequestConfig(options...)
 	config.body = input

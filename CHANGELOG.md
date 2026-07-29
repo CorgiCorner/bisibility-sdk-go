@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - 2026-07-29
+
+- Breaking for API consumers: resource identifiers now use the public ID v3 prefix registry, and
+  identifiers with retired v2 prefixes are rejected before a request is sent.
+- Breaking for authentication: use the namespaced `bsb_key_live_`, `bsb_key_test_`, and
+  `bsb_pat_live_` credential prefixes; retired `bsk_` and `bsp_` credentials are rejected locally.
+- Breaking for cloud-import consumers: require schema v5 packages and sessions, and document v3
+  cursors as opaque continuation values that must be passed back unchanged.
 
 ## 0.4.1 - 2026-07-28
 

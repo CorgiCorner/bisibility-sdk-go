@@ -39,16 +39,16 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list alert rules",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListAlertRules(ctx, "prj spaced", &PaginationOptions{Cursor: "cursor 1", Limit: 2})
+				return c.ListAlertRules(ctx, "prj_a00000000000000000000000", &PaginationOptions{Cursor: "cursor 1", Limit: 2})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj%20spaced/alert-rules",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/alert-rules",
 			query:    "cursor=cursor+1&limit=2",
-			response: listEnvelope([]any{alertRuleJSON("rule_1")}, "cursor_2"),
+			response: listEnvelope([]any{alertRuleJSON("alr_a00000000000000000000000")}, "cursor_2"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				rules := got.(*ListResponse[AlertRule])
-				assertEqual(t, rules.Data[0].ID, "rule_1")
+				assertEqual(t, rules.Data[0].ID, "alr_a00000000000000000000000")
 				assertEqual(t, rules.Data[0].ChangePct.Float64(), 12.5)
 				assertEqual(t, *rules.Meta.NextCursor, "cursor_2")
 			},
@@ -56,40 +56,42 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "create alert rule",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.CreateAlertRule(ctx, "prj_1", CreateAlertRuleInput{
+				return c.CreateAlertRule(ctx, "prj_a00000000000000000000000", CreateAlertRuleInput{
 					Channels:          []AlertChannel{AlertChannelEmail, AlertChannelWebhook},
 					ConditionType:     AlertConditionTypeThreshold,
 					Enabled:           &disabled,
 					Name:              "Dropped out",
-					TargetIDs:         []string{"kw_1"},
+					RecipientIDs:      []string{"usr_a00000000000000000000000"},
+					TargetIDs:         []string{"kw_a00000000000000000000000"},
 					TargetType:        AlertTargetTypeKeyword,
 					ThresholdPosition: &threshold,
 				}, WithIdempotencyKey("idem_alert"))
 			},
 			method: http.MethodPost,
-			path:   "/api/v1/projects/prj_1/alert-rules",
+			path:   "/api/v1/projects/prj_a00000000000000000000000/alert-rules",
 			body: `{
 				"channels":["email","webhook"],
 				"condition_type":"threshold",
 				"enabled":false,
 				"name":"Dropped out",
-				"target_ids":["kw_1"],
+				"recipient_ids":["usr_a00000000000000000000000"],
+				"target_ids":["kw_a00000000000000000000000"],
 				"target_type":"keyword",
 				"threshold_position":10
 			}`,
-			response:        alertRuleJSON("rule_1"),
+			response:        alertRuleJSON("alr_a00000000000000000000000"),
 			status:          http.StatusCreated,
 			idempotencyKey:  "idem_alert",
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*AlertRule).ID, "rule_1")
+				assertEqual(t, got.(*AlertRule).ID, "alr_a00000000000000000000000")
 			},
 		},
 		{
 			name: "update alert rule",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateAlertRule(ctx, "rule_1", UpdateAlertRuleInput{
+				return c.UpdateAlertRule(ctx, "alr_a00000000000000000000000", UpdateAlertRuleInput{
 					ChangePct:     &changePct,
 					ConditionType: AlertConditionTypeChangePct,
 					Enabled:       &enabled,
@@ -98,7 +100,7 @@ func TestNewEndpointMethods(t *testing.T) {
 				})
 			},
 			method: http.MethodPatch,
-			path:   "/api/v1/alert-rules/rule_1",
+			path:   "/api/v1/alert-rules/alr_a00000000000000000000000",
 			body: `{
 				"change_pct":12.5,
 				"condition_type":"change_pct",
@@ -106,7 +108,7 @@ func TestNewEndpointMethods(t *testing.T) {
 				"name":"Changed",
 				"target_type":"all"
 			}`,
-			response:        alertRuleJSON("rule_1"),
+			response:        alertRuleJSON("alr_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -114,10 +116,12 @@ func TestNewEndpointMethods(t *testing.T) {
 			},
 		},
 		{
-			name:     "delete alert rule",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.DeleteAlertRule(ctx, "rule_1") },
+			name: "delete alert rule",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.DeleteAlertRule(ctx, "alr_a00000000000000000000000")
+			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/alert-rules/rule_1",
+			path:     "/api/v1/alert-rules/alr_a00000000000000000000000",
 			response: AlertRuleDeleteResult{Deleted: true},
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -127,12 +131,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list triggered alerts",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListTriggeredAlerts(ctx, "prj_1", &PaginationOptions{Limit: 5})
+				return c.ListTriggeredAlerts(ctx, "prj_a00000000000000000000000", &PaginationOptions{Limit: 5})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/triggered-alerts",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/triggered-alerts",
 			query:    "limit=5",
-			response: listResponse(triggeredAlertFixture("alert_1")),
+			response: listResponse(triggeredAlertFixture("al_a00000000000000000000000")),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				assertEqual(t, got.(*ListResponse[TriggeredAlert]).Data[0].Severity, AlertSeverityWarning)
@@ -141,10 +145,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "mute triggered alert",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.MuteTriggeredAlert(ctx, "prj spaced", "alert/1", WithIdempotencyKey("idem_mute"))
+				return c.MuteTriggeredAlert(ctx, "prj_a00000000000000000000000", "al_a00000000000000000000000", WithIdempotencyKey("idem_mute"))
 			},
 			method:         http.MethodPost,
-			path:           "/api/v1/projects/prj%20spaced/triggered-alerts/alert%2F1/mute",
+			path:           "/api/v1/projects/prj_a00000000000000000000000/triggered-alerts/al_a00000000000000000000000/mute",
 			response:       map[string]any{"muted": true, "snoozed_until": "2026-07-23T10:00:00Z"},
 			idempotencyKey: "idem_mute",
 			want: func(t *testing.T, got any) {
@@ -157,10 +161,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "mark project alerts read",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.MarkProjectAlertsRead(ctx, "prj_1", WithIdempotencyKey("idem_read"))
+				return c.MarkProjectAlertsRead(ctx, "prj_a00000000000000000000000", WithIdempotencyKey("idem_read"))
 			},
 			method:         http.MethodPost,
-			path:           "/api/v1/projects/prj_1/triggered-alerts/mark-read",
+			path:           "/api/v1/projects/prj_a00000000000000000000000/triggered-alerts/mark-read",
 			response:       TriggeredAlertsReadResult{Updated: 7},
 			idempotencyKey: "idem_read",
 			want: func(t *testing.T, got any) {
@@ -171,12 +175,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list team members",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListTeamMembers(ctx, "prj_1", &PaginationOptions{Limit: 25})
+				return c.ListTeamMembers(ctx, "prj_a00000000000000000000000", &PaginationOptions{Limit: 25})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/team/members",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/team/members",
 			query:    "limit=25",
-			response: listResponse(teamMemberFixture("mem_1")),
+			response: listResponse(teamMemberFixture("mbr_a00000000000000000000000")),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				assertEqual(t, got.(*ListResponse[TeamMember]).Data[0].RoleValue, TeamRoleOwner)
@@ -185,31 +189,32 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list team invites",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListTeamInvites(ctx, "prj_1", &PaginationOptions{Cursor: "cursor_1"})
+				return c.ListTeamInvites(ctx, "prj_a00000000000000000000000", &PaginationOptions{Cursor: "cursor_1"})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/team/invites",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/team/invites",
 			query:    "cursor=cursor_1",
-			response: listResponse(teamInviteFixture("inv_1")),
+			response: listResponse(teamInviteFixture("inv_a00000000000000000000000")),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				assertEqual(t, got.(*ListResponse[TeamInvite]).Data[0].RoleValue, TeamRoleMember)
 			},
 		},
 		{
-			name:   "list sitemap monitors",
-			call:   func(ctx context.Context, c *Client) (any, error) { return c.ListSitemapMonitors(ctx, "prj_1") },
+			name: "list sitemap monitors",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.ListSitemapMonitors(ctx, "prj_a00000000000000000000000")
+			},
 			method: http.MethodGet,
-			path:   "/api/v1/projects/prj_1/sitemap-monitors",
+			path:   "/api/v1/projects/prj_a00000000000000000000000/sitemap-monitors",
 			response: listResponse(map[string]any{
 				"enabled":     true,
-				"id":          "prj_1",
-				"project_id":  "prj_1",
+				"id":          "prj_a00000000000000000000000",
+				"project_id":  "prj_a00000000000000000000000",
 				"sitemap_url": "https://example.com/sitemap.xml",
 				"status":      "active",
 				"latest_snapshot": map[string]any{
 					"fetched_at":  "2026-07-22T09:00:00Z",
-					"id":          "snapshot_1",
 					"sitemap_url": "https://example.com/sitemap.xml",
 					"url_count":   42,
 				},
@@ -224,12 +229,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "update sitemap monitor includes false",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateSitemapMonitor(ctx, "prj_1", "monitor/1", UpdateSitemapMonitorInput{Enabled: false})
+				return c.UpdateSitemapMonitor(ctx, "prj_a00000000000000000000000", "prj_a00000000000000000000000", UpdateSitemapMonitorInput{Enabled: false})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/sitemap-monitors/monitor%2F1",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/sitemap-monitors/prj_a00000000000000000000000",
 			body:            `{"enabled":false}`,
-			response:        map[string]any{"enabled": false, "id": "monitor/1", "latest_snapshot": nil, "project_id": "prj_1", "sitemap_url": nil, "status": "disabled"},
+			response:        map[string]any{"enabled": false, "id": "prj_a00000000000000000000000", "latest_snapshot": nil, "project_id": "prj_a00000000000000000000000", "sitemap_url": nil, "status": "disabled"},
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -244,15 +249,15 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "create team invite",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.CreateTeamInvite(ctx, "prj_1", CreateTeamInviteInput{
+				return c.CreateTeamInvite(ctx, "prj_a00000000000000000000000", CreateTeamInviteInput{
 					Email: "new@example.com",
 					Role:  TeamRoleViewer,
 				})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/team/invites",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/team/invites",
 			body:            `{"email":"new@example.com","role":"viewer"}`,
-			response:        createdTeamInviteFixture("inv_2"),
+			response:        createdTeamInviteFixture("inv_b00000000000000000000000"),
 			status:          http.StatusCreated,
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
@@ -261,36 +266,38 @@ func TestNewEndpointMethods(t *testing.T) {
 			},
 		},
 		{
-			name:     "revoke team invite top-level",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.RevokeTeamInvite(ctx, "inv_1") },
+			name: "revoke team invite top-level",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.RevokeTeamInvite(ctx, "inv_a00000000000000000000000")
+			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/team/invites/inv_1",
-			response: RevokeTeamInviteResult{ID: "inv_1"},
+			path:     "/api/v1/team/invites/inv_a00000000000000000000000",
+			response: RevokeTeamInviteResult{ID: "inv_a00000000000000000000000"},
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RevokeTeamInviteResult).ID, "inv_1")
+				assertEqual(t, got.(*RevokeTeamInviteResult).ID, "inv_a00000000000000000000000")
 			},
 		},
 		{
 			name: "revoke team invite project route",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RevokeProjectTeamInvite(ctx, "prj_1", "inv_1")
+				return c.RevokeProjectTeamInvite(ctx, "prj_a00000000000000000000000", "inv_a00000000000000000000000")
 			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/projects/prj_1/team/invites/inv_1",
-			response: RevokeTeamInviteResult{ID: "inv_1"},
+			path:     "/api/v1/projects/prj_a00000000000000000000000/team/invites/inv_a00000000000000000000000",
+			response: RevokeTeamInviteResult{ID: "inv_a00000000000000000000000"},
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RevokeTeamInviteResult).ID, "inv_1")
+				assertEqual(t, got.(*RevokeTeamInviteResult).ID, "inv_a00000000000000000000000")
 			},
 		},
 		{
 			name: "list providers",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListProviders(ctx, "prj_1", &PaginationOptions{Limit: 10})
+				return c.ListProviders(ctx, "prj_a00000000000000000000000", &PaginationOptions{Limit: 10})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/providers",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/providers",
 			query:    "limit=10",
 			response: listResponse(providerFixture(ProviderIDDataForSEO)),
 			want: func(t *testing.T, got any) {
@@ -303,7 +310,7 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "connect provider",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ConnectProvider(ctx, "prj_1", ProviderIDDataForSEO, ConnectProviderInput{
+				return c.ConnectProvider(ctx, "prj_a00000000000000000000000", ProviderIDDataForSEO, ConnectProviderInput{
 					CostPerCheck: &cost,
 					Enabled:      &enabled,
 					Login:        "login",
@@ -313,7 +320,7 @@ func TestNewEndpointMethods(t *testing.T) {
 				})
 			},
 			method: http.MethodPost,
-			path:   "/api/v1/projects/prj_1/providers/dataforseo/connect",
+			path:   "/api/v1/projects/prj_a00000000000000000000000/providers/dataforseo/connect",
 			body: `{
 				"cost_per_check":0.06,
 				"enabled":true,
@@ -335,12 +342,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "test provider connection",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.TestProviderConnection(ctx, "prj_1", ProviderIDSerpAPI, TestProviderConnectionInput{
+				return c.TestProviderConnection(ctx, "prj_a00000000000000000000000", ProviderIDSerpAPI, TestProviderConnectionInput{
 					Credentials: &ProviderCredentialsInput{APIKey: "api_key"},
 				})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/providers/serpapi/test",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/serpapi/test",
 			body:            `{"credentials":{"api_key":"api_key"}}`,
 			response:        ProviderTestResult{Balance: &cost, Message: "Ready", OK: true},
 			wantContentType: true,
@@ -352,12 +359,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "test provider connection with endpoint",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.TestProviderConnection(ctx, "prj_1", ProviderIDPlausible, TestProviderConnectionInput{
+				return c.TestProviderConnection(ctx, "prj_a00000000000000000000000", ProviderIDPlausible, TestProviderConnectionInput{
 					Credentials: &ProviderCredentialsInput{APIKey: "api_key", Endpoint: "https://plausible.example"},
 				})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/providers/plausible/test",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/plausible/test",
 			body:            `{"credentials":{"api_key":"api_key","endpoint":"https://plausible.example"}}`,
 			response:        ProviderTestResult{Message: "Ready", OK: true},
 			wantContentType: true,
@@ -369,14 +376,14 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "update provider settings",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateProviderSettings(ctx, "prj_1", ProviderIDDataForSEO, ProviderSettingsInput{
+				return c.UpdateProviderSettings(ctx, "prj_a00000000000000000000000", ProviderIDDataForSEO, ProviderSettingsInput{
 					Enabled:  &enabled,
 					Primary:  &notPrimary,
 					Priority: &priority,
 				})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/providers/dataforseo",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/dataforseo",
 			body:            `{"enabled":true,"primary":false,"priority":0}`,
 			response:        providerConnectionJSON(ProviderIDDataForSEO),
 			wantContentType: true,
@@ -388,10 +395,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "set provider enabled includes false",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.SetProviderEnabled(ctx, "prj_1", ProviderIDDataForSEO, false)
+				return c.SetProviderEnabled(ctx, "prj_a00000000000000000000000", ProviderIDDataForSEO, false)
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/providers/dataforseo",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/dataforseo",
 			body:            `{"enabled":false}`,
 			response:        providerConnectionJSON(ProviderIDDataForSEO),
 			wantContentType: true,
@@ -403,10 +410,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "set provider priority includes zero",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.SetProviderPriority(ctx, "prj_1", ProviderIDDataForSEO, 0)
+				return c.SetProviderPriority(ctx, "prj_a00000000000000000000000", ProviderIDDataForSEO, 0)
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/providers/dataforseo",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/dataforseo",
 			body:            `{"priority":0}`,
 			response:        providerConnectionJSON(ProviderIDDataForSEO),
 			wantContentType: true,
@@ -418,10 +425,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "set primary provider includes false",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.SetPrimaryProvider(ctx, "prj_1", ProviderIDDataForSEO, false)
+				return c.SetPrimaryProvider(ctx, "prj_a00000000000000000000000", ProviderIDDataForSEO, false)
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/providers/dataforseo",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/dataforseo",
 			body:            `{"primary":false}`,
 			response:        providerConnectionJSON(ProviderIDDataForSEO),
 			wantContentType: true,
@@ -433,10 +440,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "disconnect provider",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.DisconnectProvider(ctx, "prj_1", ProviderIDDataForSEO)
+				return c.DisconnectProvider(ctx, "prj_a00000000000000000000000", ProviderIDDataForSEO)
 			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/projects/prj_1/providers/dataforseo",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/providers/dataforseo",
 			response: ProviderDisconnectResult{OK: true},
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -446,12 +453,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list saved views",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListSavedViews(ctx, "prj_1", &PaginationOptions{Limit: 3})
+				return c.ListSavedViews(ctx, "prj_a00000000000000000000000", &PaginationOptions{Limit: 3})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/saved-views",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/saved-views",
 			query:    "limit=3",
-			response: listResponse(savedViewFixture("view_1")),
+			response: listResponse(savedViewFixture("viw_a00000000000000000000000")),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				assertEqual(t, got.(*ListResponse[SavedView]).Data[0].Config.Filters.Position[0], SavedViewPositionTop10)
@@ -460,15 +467,15 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "create saved view",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.CreateSavedView(ctx, "prj_1", CreateSavedViewInput{
+				return c.CreateSavedView(ctx, "prj_a00000000000000000000000", CreateSavedViewInput{
 					Config: savedViewConfigFixture(),
 					Name:   "Winners",
 				})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/saved-views",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/saved-views",
 			body:            `{"config":{"filters":{"change":"up","country":"us","device":"desktop","position":["top10"],"tags":["Product"],"vol_max":50},"search":"rank"},"name":"Winners"}`,
-			response:        savedViewFixture("view_1"),
+			response:        savedViewFixture("viw_a00000000000000000000000"),
 			status:          http.StatusCreated,
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
@@ -477,10 +484,12 @@ func TestNewEndpointMethods(t *testing.T) {
 			},
 		},
 		{
-			name:     "delete saved view top-level",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.DeleteSavedView(ctx, "view_1") },
+			name: "delete saved view top-level",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.DeleteSavedView(ctx, "viw_a00000000000000000000000")
+			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/saved-views/view_1",
+			path:     "/api/v1/saved-views/viw_a00000000000000000000000",
 			response: SavedViewDeleteResult{Deleted: true},
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -490,10 +499,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "delete saved view project route",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.DeleteProjectSavedView(ctx, "prj_1", "view_1")
+				return c.DeleteProjectSavedView(ctx, "prj_a00000000000000000000000", "viw_a00000000000000000000000")
 			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/projects/prj_1/saved-views/view_1",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/saved-views/viw_a00000000000000000000000",
 			response: SavedViewDeleteResult{Deleted: true},
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -503,10 +512,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list competitors",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListCompetitors(ctx, "prj_1", &PaginationOptions{Limit: 5})
+				return c.ListCompetitors(ctx, "prj_a00000000000000000000000", &PaginationOptions{Limit: 5})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/competitors",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/competitors",
 			query:    "limit=5",
 			response: competitorsResponseFixture(),
 			want: func(t *testing.T, got any) {
@@ -520,12 +529,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "add competitor",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.AddCompetitor(ctx, "prj_1", AddCompetitorInput{Domain: "rankzly.io", Label: "Rankzly"})
+				return c.AddCompetitor(ctx, "prj_a00000000000000000000000", AddCompetitorInput{Domain: "rankzly.io", Label: "Rankzly"})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/competitors",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/competitors",
 			body:            `{"domain":"rankzly.io","label":"Rankzly"}`,
-			response:        competitorFixture("cmp_1"),
+			response:        competitorFixture("cmp_a00000000000000000000000"),
 			status:          http.StatusCreated,
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
@@ -534,10 +543,12 @@ func TestNewEndpointMethods(t *testing.T) {
 			},
 		},
 		{
-			name:     "remove competitor top-level",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.RemoveCompetitor(ctx, "cmp_1") },
+			name: "remove competitor top-level",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.RemoveCompetitor(ctx, "cmp_a00000000000000000000000")
+			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/competitors/cmp_1",
+			path:     "/api/v1/competitors/cmp_a00000000000000000000000",
 			response: CompetitorRemoveResult{Removed: true},
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -547,10 +558,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "remove competitor project route",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RemoveProjectCompetitor(ctx, "prj_1", "cmp_1")
+				return c.RemoveProjectCompetitor(ctx, "prj_a00000000000000000000000", "cmp_a00000000000000000000000")
 			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/projects/prj_1/competitors/cmp_1",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/competitors/cmp_a00000000000000000000000",
 			response: CompetitorRemoveResult{Removed: true},
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -560,10 +571,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "get notification preferences",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.GetNotificationPreferences(ctx, "prj_1")
+				return c.GetNotificationPreferences(ctx, "prj_a00000000000000000000000")
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/notification-preferences",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/notification-preferences",
 			response: notificationPreferencesFixture(),
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -573,14 +584,14 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "update notification preferences includes false",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.UpdateNotificationPreferences(ctx, "prj_1", UpdateNotificationPreferencesInput{
+				return c.UpdateNotificationPreferences(ctx, "prj_a00000000000000000000000", UpdateNotificationPreferencesInput{
 					AlertEmail: &disabled,
 					AlertInApp: &enabled,
 					CheckEmail: &disabled,
 				})
 			},
 			method:          http.MethodPatch,
-			path:            "/api/v1/projects/prj_1/notification-preferences",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/notification-preferences",
 			body:            `{"alert_email":false,"alert_in_app":true,"check_email":false}`,
 			response:        updatedNotificationPreferencesFixture(),
 			wantContentType: true,
@@ -592,10 +603,10 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list migration tokens",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListMigrationTokens(ctx, "prj_1")
+				return c.ListMigrationTokens(ctx, "prj_a00000000000000000000000")
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj_1/migration-tokens",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/migration-tokens",
 			response: migrationTokensResponseFixture(),
 			want: func(t *testing.T, got any) {
 				t.Helper()
@@ -610,12 +621,12 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "mint migration token",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.MintMigrationToken(ctx, "prj_1", MintMigrationTokenInput{Scope: MigrationScopeKeywords})
+				return c.MintMigrationToken(ctx, "prj_a00000000000000000000000", MintMigrationTokenInput{Scope: MigrationScopeKeywords})
 			},
 			method:          http.MethodPost,
-			path:            "/api/v1/projects/prj_1/migration-tokens",
+			path:            "/api/v1/projects/prj_a00000000000000000000000/migration-tokens",
 			body:            `{"scope":"keywords"}`,
-			response:        issuedMigrationTokenFixture("mt_1"),
+			response:        issuedMigrationTokenFixture("ferry_a00000000000000000000000"),
 			status:          http.StatusCreated,
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
@@ -624,27 +635,29 @@ func TestNewEndpointMethods(t *testing.T) {
 			},
 		},
 		{
-			name:     "revoke migration token top-level",
-			call:     func(ctx context.Context, c *Client) (any, error) { return c.RevokeMigrationToken(ctx, "mt_1") },
+			name: "revoke migration token top-level",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.RevokeMigrationToken(ctx, "ferry_a00000000000000000000000")
+			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/migration-tokens/mt_1",
-			response: revokedMigrationTokenFixture("mt_1"),
+			path:     "/api/v1/migration-tokens/ferry_a00000000000000000000000",
+			response: revokedMigrationTokenFixture("ferry_a00000000000000000000000"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RevokedMigrationToken).ID, "mt_1")
+				assertEqual(t, got.(*RevokedMigrationToken).ID, "ferry_a00000000000000000000000")
 			},
 		},
 		{
 			name: "revoke migration token project route",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RevokeProjectMigrationToken(ctx, "prj_1", "mt_1")
+				return c.RevokeProjectMigrationToken(ctx, "prj_a00000000000000000000000", "ferry_a00000000000000000000000")
 			},
 			method:   http.MethodDelete,
-			path:     "/api/v1/projects/prj_1/migration-tokens/mt_1",
-			response: revokedMigrationTokenFixture("mt_1"),
+			path:     "/api/v1/projects/prj_a00000000000000000000000/migration-tokens/ferry_a00000000000000000000000",
+			response: revokedMigrationTokenFixture("ferry_a00000000000000000000000"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RevokedMigrationToken).ID, "mt_1")
+				assertEqual(t, got.(*RevokedMigrationToken).ID, "ferry_a00000000000000000000000")
 			},
 		},
 		{
@@ -653,7 +666,7 @@ func TestNewEndpointMethods(t *testing.T) {
 				happened := mustTime("2026-07-04T19:30:00Z")
 				return c.CreateSignal(ctx, CreateSignalInput{
 					HappenedAt: &happened,
-					KeywordID:  "kw_1",
+					KeywordID:  "kw_a00000000000000000000000",
 					Payload:    JSONValue{"version": "1.2.3"},
 					Severity:   SignalSeverityWarning,
 					Source:     SignalSourceDeploy,
@@ -665,24 +678,24 @@ func TestNewEndpointMethods(t *testing.T) {
 			path:   "/api/v1/signals",
 			body: `{
 				"happened_at":"2026-07-04T19:30:00Z",
-				"keyword_id":"kw_1",
+				"keyword_id":"kw_a00000000000000000000000",
 				"payload":{"version":"1.2.3"},
 				"severity":"warning",
 				"source":"deploy",
 				"type":"deploy.completed",
 				"url":"https://example.com/releases/1"
 			}`,
-			response:        signalJSON("sig_1"),
+			response:        signalJSON("sig_a00000000000000000000000"),
 			status:          http.StatusCreated,
 			idempotencyKey:  "idem_signal",
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				signal := got.(*Signal)
-				assertEqual(t, signal.ID, "sig_1")
-				assertEqual(t, signal.PublicID, "sig_1")
-				assertEqual(t, signal.ProjectID, "prj_1")
-				assertEqual(t, *signal.KeywordID, "kw_1")
+				assertEqual(t, signal.ID, "sig_a00000000000000000000000")
+				assertEqual(t, signal.PublicID, "sig_a00000000000000000000000")
+				assertEqual(t, signal.ProjectID, "prj_a00000000000000000000000")
+				assertEqual(t, *signal.KeywordID, "kw_a00000000000000000000000")
 				assertEqual(t, signal.Severity, SignalSeverityWarning)
 				assertEqual(t, signal.Source, SignalSourceDeploy)
 				assertEqual(t, signal.Type, "deploy.completed")
@@ -702,13 +715,13 @@ func TestNewEndpointMethods(t *testing.T) {
 			method:          http.MethodPost,
 			path:            "/api/v1/signals",
 			body:            `{"source":"api","type":"api.changed"}`,
-			response:        minimalSignalJSON("sig_2"),
+			response:        minimalSignalJSON("sig_b00000000000000000000000"),
 			status:          http.StatusCreated,
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				signal := got.(*Signal)
-				assertEqual(t, signal.ID, "sig_2")
+				assertEqual(t, signal.ID, "sig_b00000000000000000000000")
 				assertEqual(t, signal.Severity, SignalSeverityInfo)
 				if signal.KeywordID != nil {
 					t.Fatalf("KeywordID = %v, want nil", *signal.KeywordID)
@@ -724,7 +737,7 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list signals with filters",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListSignals(ctx, "prj spaced", &ListSignalsOptions{
+				return c.ListSignals(ctx, "prj_a00000000000000000000000", &ListSignalsOptions{
 					Cursor: "cursor 1",
 					From:   mustTime("2026-07-01T00:00:00Z"),
 					Limit:  1,
@@ -734,13 +747,13 @@ func TestNewEndpointMethods(t *testing.T) {
 				})
 			},
 			method:   http.MethodGet,
-			path:     "/api/v1/projects/prj%20spaced/signals",
+			path:     "/api/v1/projects/prj_a00000000000000000000000/signals",
 			query:    "cursor=cursor+1&from=2026-07-01T00%3A00%3A00Z&limit=1&source=deploy&to=2026-07-05T00%3A00%3A00Z&type=deploy.completed",
-			response: listEnvelope([]any{signalJSON("sig_2")}, "cursor_2"),
+			response: listEnvelope([]any{signalJSON("sig_b00000000000000000000000")}, "cursor_2"),
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				signals := got.(*ListResponse[Signal])
-				assertEqual(t, signals.Data[0].PublicID, "sig_2")
+				assertEqual(t, signals.Data[0].PublicID, "sig_b00000000000000000000000")
 				assertEqual(t, signals.Data[0].Source, SignalSourceDeploy)
 				assertEqual(t, *signals.Meta.NextCursor, "cursor_2")
 			},
@@ -748,18 +761,18 @@ func TestNewEndpointMethods(t *testing.T) {
 		{
 			name: "list signals without filters",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.ListSignals(ctx, "prj_1", nil)
+				return c.ListSignals(ctx, "prj_a00000000000000000000000", nil)
 			},
 			method: http.MethodGet,
-			path:   "/api/v1/projects/prj_1/signals",
+			path:   "/api/v1/projects/prj_a00000000000000000000000/signals",
 			response: map[string]any{
-				"data": []any{signalJSON("sig_1")},
+				"data": []any{signalJSON("sig_a00000000000000000000000")},
 				"meta": map[string]any{"next_cursor": nil},
 			},
 			want: func(t *testing.T, got any) {
 				t.Helper()
 				signals := got.(*ListResponse[Signal])
-				assertEqual(t, signals.Data[0].ID, "sig_1")
+				assertEqual(t, signals.Data[0].ID, "sig_a00000000000000000000000")
 				if signals.Meta.NextCursor != nil {
 					t.Fatalf("NextCursor = %v, want nil", *signals.Meta.NextCursor)
 				}
@@ -829,10 +842,11 @@ func alertRuleJSON(id string) map[string]any {
 		"id":                 id,
 		"name":               "Rank changed",
 		"period":             "Each check",
+		"recipient_ids":      []string{"usr_a00000000000000000000000"},
 		"scope":              "All keywords",
 		"severity":           "warning",
 		"status":             "active",
-		"target_ids":         []string{"kw_1"},
+		"target_ids":         []string{"kw_a00000000000000000000000"},
 		"target_type":        "keyword",
 		"threshold_position": nil,
 		"top_n":              nil,
@@ -927,12 +941,12 @@ func providerConnectionJSON(id ProviderID) map[string]any {
 		"cost_per_check_cents": "0.06",
 		"created_at":           "2026-01-01T00:00:00Z",
 		"enabled":              true,
-		"id":                   "pc_1",
+		"id":                   "conn_a00000000000000000000000",
 		"is_primary":           true,
 		"kind":                 "serp",
 		"last_used_at":         nil,
 		"priority":             0,
-		"project_id":           "prj_1",
+		"project_id":           "prj_a00000000000000000000000",
 		"provider":             id,
 		"status":               "connected",
 		"updated_at":           "2026-01-02T00:00:00Z",
@@ -957,7 +971,7 @@ func savedViewFixture(id string) SavedView {
 	return SavedView{
 		Config:      savedViewConfigFixture(),
 		CreatedAt:   mustTime("2026-01-01T00:00:00Z"),
-		CreatedByID: strPtr("usr_1"),
+		CreatedByID: strPtr("usr_a00000000000000000000000"),
 		ID:          id,
 		Name:        "Winners",
 	}
@@ -970,7 +984,7 @@ func competitorsResponseFixture() ListCompetitorsResponse {
 	return ListCompetitorsResponse{
 		Data: []ManagedCompetitor{{
 			Domain:   "rankzly.io",
-			ID:       "cmp_1",
+			ID:       "cmp_a00000000000000000000000",
 			Initials: "RI",
 			Label:    "Rankzly",
 		}},
@@ -979,7 +993,7 @@ func competitorsResponseFixture() ListCompetitorsResponse {
 				CheckedKeywordCount: 1,
 				Columns: []CompetitorColumn{
 					{Domain: "example.com", Kind: "You", Label: "example.com"},
-					{Domain: "rankzly.io", ID: "cmp_1", Kind: "Managed", Label: "Rankzly"},
+					{Domain: "rankzly.io", ID: "cmp_a00000000000000000000000", Kind: "Managed", Label: "Rankzly"},
 				},
 				CompetitorCount:     1,
 				Country:             "United States",
@@ -1015,7 +1029,7 @@ func notificationPreferencesFixture() NotificationPreferences {
 		ImportInApp:       true,
 		InviteEmail:       true,
 		InviteInApp:       true,
-		ProjectID:         "prj_1",
+		ProjectID:         "prj_a00000000000000000000000",
 		SlackAvailable:    false,
 		WebhookAvailable:  false,
 	}
@@ -1033,7 +1047,7 @@ func updatedNotificationPreferencesFixture() UpdatedNotificationPreferences {
 		ImportInApp:  true,
 		InviteEmail:  true,
 		InviteInApp:  true,
-		ProjectID:    "prj_1",
+		ProjectID:    "prj_a00000000000000000000000",
 	}
 }
 
@@ -1047,7 +1061,7 @@ func migrationTokensResponseFixture() ListMigrationTokensResponse {
 				Name:  "Owner Example",
 			},
 			ExpiresAt: mustTime("2026-01-01T01:00:00Z"),
-			ID:        "mt_1",
+			ID:        "ferry_a00000000000000000000000",
 			Scope:     MigrationScopeFull,
 			SingleUse: true,
 		}},
@@ -1089,9 +1103,9 @@ func signalJSON(id string) map[string]any {
 		"created_at":  "2026-07-04T19:31:00Z",
 		"happened_at": "2026-07-04T19:30:00Z",
 		"id":          id,
-		"keyword_id":  "kw_1",
+		"keyword_id":  "kw_a00000000000000000000000",
 		"payload":     map[string]any{"version": "1.2.3"},
-		"project_id":  "prj_1",
+		"project_id":  "prj_a00000000000000000000000",
 		"public_id":   id,
 		"severity":    "warning",
 		"source":      "deploy",
@@ -1107,7 +1121,7 @@ func minimalSignalJSON(id string) map[string]any {
 		"id":          id,
 		"keyword_id":  nil,
 		"payload":     nil,
-		"project_id":  "prj_1",
+		"project_id":  "prj_a00000000000000000000000",
 		"public_id":   id,
 		"severity":    "info",
 		"source":      "api",

@@ -26,17 +26,60 @@ func collectPager[T any](t *testing.T, pager *Pager[T]) []T {
 
 func TestResourcePagers(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/projects/prj/keywords" && r.URL.Query().Get("filter[tag]") != "stable" {
+		if r.URL.Path == "/api/v1/projects/prj_a00000000000000000000000/keywords" && r.URL.Query().Get("filter[tag]") != "stable" {
 			t.Errorf("keyword tag filter was not preserved")
+		}
+		prefix := PublicIDPrefix("")
+		switch {
+		case strings.Contains(r.URL.Path, "/api-keys"):
+			prefix = PublicIDPrefixKey
+		case strings.Contains(r.URL.Path, "/webhooks"):
+			prefix = PublicIDPrefixWebhook
+		case strings.Contains(r.URL.Path, "/keywords/") && strings.Contains(r.URL.Path, "/rank-checks"):
+			prefix = PublicIDPrefixCheck
+		case strings.Contains(r.URL.Path, "/keywords"):
+			prefix = PublicIDPrefixKeyword
+		case strings.Contains(r.URL.Path, "/signals"):
+			prefix = PublicIDPrefixSignal
+		case strings.Contains(r.URL.Path, "/alert-rules"):
+			prefix = PublicIDPrefixRule
+		case strings.Contains(r.URL.Path, "/triggered-alerts"):
+			prefix = PublicIDPrefixAlert
+		case strings.Contains(r.URL.Path, "/team/members"):
+			prefix = PublicIDPrefixMember
+		case strings.Contains(r.URL.Path, "/team/invites"):
+			prefix = PublicIDPrefixInvite
+		case strings.Contains(r.URL.Path, "/saved-views"):
+			prefix = PublicIDPrefixView
+		case strings.Contains(r.URL.Path, "/competitors"):
+			prefix = PublicIDPrefixComp
+		case strings.Contains(r.URL.Path, "/migration-tokens"):
+			prefix = PublicIDPrefixMToken
 		}
 		next := any(nil)
 		id := "second"
+		if prefix != "" {
+			id = strictID(prefix)
+		}
 		if r.URL.Query().Get("cursor") != "next" {
 			next = "next"
-			id = "first"
+			if prefix == "" {
+				id = "first"
+			}
+		}
+		item := map[string]any{"id": id}
+		if prefix == PublicIDPrefixKeyword {
+			item["project_id"] = strictID(PublicIDPrefixProject)
+		}
+		if prefix == PublicIDPrefixCheck {
+			item["keyword_id"] = strictID(PublicIDPrefixKeyword)
+		}
+		if prefix == PublicIDPrefixSignal {
+			item["project_id"] = strictID(PublicIDPrefixProject)
+			item["public_id"] = strictID(PublicIDPrefixSignal)
 		}
 		writeJSON(t, w, http.StatusOK, map[string]any{
-			"data": []map[string]any{{"id": id}},
+			"data": []map[string]any{item},
 			"meta": map[string]any{"next_cursor": next},
 		})
 	}))
@@ -47,43 +90,43 @@ func TestResourcePagers(t *testing.T) {
 	if got := len(collectPager(t, client.IterateAPIKeys(ctx, nil))); got != 2 {
 		t.Fatalf("API keys = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateProjectAPIKeys(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateProjectAPIKeys(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("project API keys = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateWebhooks(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateWebhooks(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("webhooks = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateKeywords(ctx, "prj", &ListKeywordsOptions{Tag: "stable"}))); got != 2 {
+	if got := len(collectPager(t, client.IterateKeywords(ctx, "prj_a00000000000000000000000", &ListKeywordsOptions{Tag: "stable"}))); got != 2 {
 		t.Fatalf("keywords = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateRankChecks(ctx, "kw", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateRankChecks(ctx, "kw_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("rank checks = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateSignals(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateSignals(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("signals = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateAlertRules(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateAlertRules(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("alerts = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateTriggeredAlerts(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateTriggeredAlerts(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("triggered alerts = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateTeamMembers(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateTeamMembers(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("members = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateTeamInvites(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateTeamInvites(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("invites = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateProviders(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateProviders(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("providers = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateSavedViews(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateSavedViews(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("views = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateCompetitors(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateCompetitors(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("competitors = %d", got)
 	}
-	if got := len(collectPager(t, client.IterateMigrationTokens(ctx, "prj", nil))); got != 2 {
+	if got := len(collectPager(t, client.IterateMigrationTokens(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("migration tokens = %d", got)
 	}
 }
@@ -215,7 +258,7 @@ func TestAPIErrorRedactsSensitiveHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 	client := newTestClient(t, server.URL+"/api/v1")
-	_, err := client.GetKeyword(context.Background(), "missing")
+	_, err := client.GetKeyword(context.Background(), "kw_z00000000000000000000000")
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
 		t.Fatal(err)
