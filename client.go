@@ -1,3 +1,5 @@
+// Package bisibility provides a Go client for the Bisibility API, including
+// SEO rank tracking, keywords, and ranking history.
 package bisibility
 
 import (
@@ -24,7 +26,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.5.0"
+const Version = "0.5.1"
 
 const userAgent = "bisibility-sdk-go/" + Version
 

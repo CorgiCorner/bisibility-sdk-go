@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 - 2026-07-30
+
+- Improved package metadata to describe the SDK's SEO rank-tracking, keyword, and ranking-history
+  capabilities.
+
 ## 0.5.0 - 2026-07-29
 
 - Breaking for API consumers: resource identifiers now use the public ID v3 prefix registry, and
