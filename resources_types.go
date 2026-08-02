@@ -457,6 +457,86 @@ type SavedViewDeleteResult struct {
 	Deleted bool `json:"deleted"`
 }
 
+// SavedKeywordTrendPoint is one month of saved-keyword search-volume history.
+type SavedKeywordTrendPoint struct {
+	Month        int  `json:"month"`
+	SearchVolume *int `json:"search_volume"`
+	Year         int  `json:"year"`
+}
+
+// SavedKeyword is a keyword saved from keyword research. Provider metrics are
+// nullable because the API stores whatever the research response carried.
+type SavedKeyword struct {
+	CPC          *float64                 `json:"cpc"`
+	Difficulty   *int                     `json:"difficulty"`
+	ID           string                   `json:"id"`
+	Intent       *string                  `json:"intent"`
+	Location     string                   `json:"location"`
+	SavedAt      time.Time                `json:"saved_at"`
+	SourceSeed   *string                  `json:"source_seed"`
+	Text         string                   `json:"text"`
+	Trend        []SavedKeywordTrendPoint `json:"trend"`
+	VariantCount int                      `json:"variant_count"`
+	Volume       *int                     `json:"volume"`
+}
+
+// SavedKeywordInput is one keyword saved by CreateSavedKeywords. Only Keyword
+// is required; the API substitutes the project default market when Location is
+// empty and stores the remaining metrics as supplied.
+type SavedKeywordInput struct {
+	CPCCents     *int   `json:"cpc_cents,omitempty"`
+	Difficulty   *int   `json:"difficulty,omitempty"`
+	Intent       string `json:"intent,omitempty"`
+	Keyword      string `json:"keyword"`
+	Location     string `json:"location,omitempty"`
+	SearchVolume *int   `json:"search_volume,omitempty"`
+	SourceSeed   string `json:"source_seed,omitempty"`
+	VariantCount *int   `json:"variant_count,omitempty"`
+}
+
+func (SavedKeywordInput) savedKeywordItem() {}
+
+// SavedKeywordText is the compact string form accepted by CreateSavedKeywords.
+type SavedKeywordText string
+
+func (SavedKeywordText) savedKeywordItem() {}
+
+// SavedKeywordItem accepts either a bare keyword string or a metric snapshot.
+type SavedKeywordItem interface {
+	savedKeywordItem()
+}
+
+// CreateSavedKeywordsInput saves keywords for a project.
+type CreateSavedKeywordsInput struct {
+	Keywords []SavedKeywordItem `json:"keywords"`
+}
+
+// SavedKeywordStatus reports whether one item was created or skipped.
+type SavedKeywordStatus string
+
+const (
+	SavedKeywordStatusCreated SavedKeywordStatus = "created"
+	SavedKeywordStatusSkipped SavedKeywordStatus = "skipped"
+)
+
+// SavedKeywordResult reports how the API handled one submitted keyword.
+type SavedKeywordResult struct {
+	Keyword string             `json:"keyword"`
+	Status  SavedKeywordStatus `json:"status"`
+}
+
+// CreateSavedKeywordsResult is returned by CreateSavedKeywords.
+type CreateSavedKeywordsResult struct {
+	DuplicateCount int                  `json:"duplicate_count"`
+	Results        []SavedKeywordResult `json:"results"`
+	SavedCount     int                  `json:"saved_count"`
+}
+
+// SavedKeywordDeleteResult is returned after deleting a saved keyword.
+type SavedKeywordDeleteResult struct {
+	RemovedCount int `json:"removed_count"`
+}
+
 // ManagedCompetitor is a competitor item in the project competitor list.
 type ManagedCompetitor struct {
 	Domain   string `json:"domain"`

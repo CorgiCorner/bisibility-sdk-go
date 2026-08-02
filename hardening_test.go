@@ -49,6 +49,8 @@ func TestResourcePagers(t *testing.T) {
 			prefix = PublicIDPrefixMember
 		case strings.Contains(r.URL.Path, "/team/invites"):
 			prefix = PublicIDPrefixInvite
+		case strings.Contains(r.URL.Path, "/saved-keywords"):
+			prefix = PublicIDPrefixSKW
 		case strings.Contains(r.URL.Path, "/saved-views"):
 			prefix = PublicIDPrefixView
 		case strings.Contains(r.URL.Path, "/competitors"):
@@ -119,6 +121,9 @@ func TestResourcePagers(t *testing.T) {
 	}
 	if got := len(collectPager(t, client.IterateProviders(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("providers = %d", got)
+	}
+	if got := len(collectPager(t, client.IterateSavedKeywords(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
+		t.Fatalf("saved keywords = %d", got)
 	}
 	if got := len(collectPager(t, client.IterateSavedViews(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
 		t.Fatalf("views = %d", got)

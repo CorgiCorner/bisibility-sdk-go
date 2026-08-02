@@ -173,13 +173,14 @@ func WithRequestHeader(key, value string) RequestOption {
 }
 
 type requestConfig struct {
-	auth           bool
-	body           any
-	rawBody        io.Reader
-	headers        http.Header
-	idempotencyKey string
-	migrationToken string
-	query          url.Values
+	acceptedStatusCodes map[int]struct{}
+	auth                bool
+	body                any
+	rawBody             io.Reader
+	headers             http.Header
+	idempotencyKey      string
+	migrationToken      string
+	query               url.Values
 }
 
 func newRequestConfig(options ...RequestOption) requestConfig {
@@ -218,7 +219,23 @@ func parseBaseURL(raw string) (*url.URL, error) {
 func (c *Client) GetHealth(ctx context.Context, options ...RequestOption) (*HealthResponse, error) {
 	config := newRequestConfig(options...)
 	config.auth = false
+	config.acceptedStatusCodes = map[int]struct{}{http.StatusServiceUnavailable: {}}
 	return requestJSON[HealthResponse](c, ctx, http.MethodGet, "/health", config)
+}
+
+// GetLiveness reports whether the web process is alive.
+func (c *Client) GetLiveness(ctx context.Context, options ...RequestOption) (*LivenessResponse, error) {
+	config := newRequestConfig(options...)
+	config.auth = false
+	return requestJSON[LivenessResponse](c, ctx, http.MethodGet, "/liveness", config)
+}
+
+// GetReadiness reports whether the web process is ready to receive traffic.
+func (c *Client) GetReadiness(ctx context.Context, options ...RequestOption) (*ReadinessResponse, error) {
+	config := newRequestConfig(options...)
+	config.auth = false
+	config.acceptedStatusCodes = map[int]struct{}{http.StatusServiceUnavailable: {}}
+	return requestJSON[ReadinessResponse](c, ctx, http.MethodGet, "/readiness", config)
 }
 
 // GetOpenAPI returns the public OpenAPI document.
@@ -585,6 +602,9 @@ func (c *Client) do(ctx context.Context, method, path string, config requestConf
 		if responseErr == nil {
 			return body, statusCode, nil
 		}
+		if _, accepted := config.acceptedStatusCodes[statusCode]; accepted {
+			return body, statusCode, nil
+		}
 		var networkErr *NetworkError
 		if retryable && attempt < c.maxRetries && errors.As(responseErr, &networkErr) && ctx.Err() == nil {
 			if err := waitForRetry(ctx, retryBackoff(attempt)); err != nil {
@@ -695,7 +715,7 @@ func readResponse(resp *http.Response, method, requestURL string) ([]byte, int, 
 		return nil, 0, &NetworkError{Cause: readErr, Method: method, URL: requestURL}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, resp.StatusCode, apiErrorFromResponse(resp, method, requestURL, responseBody)
+		return responseBody, resp.StatusCode, apiErrorFromResponse(resp, method, requestURL, responseBody)
 	}
 
 	return responseBody, resp.StatusCode, nil

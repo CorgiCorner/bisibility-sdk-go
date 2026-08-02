@@ -510,6 +510,88 @@ func TestNewEndpointMethods(t *testing.T) {
 			},
 		},
 		{
+			name: "list saved keywords",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.ListSavedKeywords(ctx, "prj_a00000000000000000000000", &PaginationOptions{Limit: 3})
+			},
+			method:   http.MethodGet,
+			path:     "/api/v1/projects/prj_a00000000000000000000000/saved-keywords",
+			query:    "limit=3",
+			response: listResponse(savedKeywordFixture("svkw_a00000000000000000000000")),
+			want: func(t *testing.T, got any) {
+				t.Helper()
+				keyword := got.(*ListResponse[SavedKeyword]).Data[0]
+				assertEqual(t, keyword.ID, "svkw_a00000000000000000000000")
+				assertEqual(t, keyword.Text, "rank tracker")
+				assertEqual(t, *keyword.Volume, 720)
+				assertEqual(t, *keyword.Intent, "commercial")
+				assertEqual(t, *keyword.Trend[0].SearchVolume, 590)
+				assertEqual(t, keyword.Trend[1].SearchVolume == nil, true)
+				assertEqual(t, keyword.VariantCount, 3)
+			},
+		},
+		{
+			name: "create saved keywords",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.CreateSavedKeywords(ctx, "prj_a00000000000000000000000", CreateSavedKeywordsInput{
+					Keywords: []SavedKeywordItem{
+						SavedKeywordText("rank tracker"),
+						SavedKeywordInput{
+							CPCCents:     intPtr(120),
+							Difficulty:   intPtr(41),
+							Intent:       "commercial",
+							Keyword:      "seo api",
+							Location:     "United States",
+							SearchVolume: intPtr(720),
+							SourceSeed:   "rank tracker",
+							VariantCount: intPtr(3),
+						},
+					},
+				}, WithIdempotencyKey("idem_saved_keywords"))
+			},
+			method: http.MethodPost,
+			path:   "/api/v1/projects/prj_a00000000000000000000000/saved-keywords",
+			body: `{
+				"keywords":[
+					"rank tracker",
+					{
+						"cpc_cents":120,
+						"difficulty":41,
+						"intent":"commercial",
+						"keyword":"seo api",
+						"location":"United States",
+						"search_volume":720,
+						"source_seed":"rank tracker",
+						"variant_count":3
+					}
+				]
+			}`,
+			response:        createSavedKeywordsResultFixture(),
+			status:          http.StatusCreated,
+			idempotencyKey:  "idem_saved_keywords",
+			wantContentType: true,
+			want: func(t *testing.T, got any) {
+				t.Helper()
+				result := got.(*CreateSavedKeywordsResult)
+				assertEqual(t, result.SavedCount, 1)
+				assertEqual(t, result.DuplicateCount, 1)
+				assertEqual(t, result.Results[1].Status, SavedKeywordStatusSkipped)
+			},
+		},
+		{
+			name: "delete saved keyword project route",
+			call: func(ctx context.Context, c *Client) (any, error) {
+				return c.DeleteProjectSavedKeyword(ctx, "prj_a00000000000000000000000", "svkw_a00000000000000000000000")
+			},
+			method:   http.MethodDelete,
+			path:     "/api/v1/projects/prj_a00000000000000000000000/saved-keywords/svkw_a00000000000000000000000",
+			response: SavedKeywordDeleteResult{RemovedCount: 1},
+			want: func(t *testing.T, got any) {
+				t.Helper()
+				assertEqual(t, got.(*SavedKeywordDeleteResult).RemovedCount, 1)
+			},
+		},
+		{
 			name: "list competitors",
 			call: func(ctx context.Context, c *Client) (any, error) {
 				return c.ListCompetitors(ctx, "prj_a00000000000000000000000", &PaginationOptions{Limit: 5})
@@ -974,6 +1056,37 @@ func savedViewFixture(id string) SavedView {
 		CreatedByID: strPtr("usr_a00000000000000000000000"),
 		ID:          id,
 		Name:        "Winners",
+	}
+}
+
+func savedKeywordFixture(id string) SavedKeyword {
+	cpc := 1.2
+	return SavedKeyword{
+		CPC:        &cpc,
+		Difficulty: intPtr(41),
+		ID:         id,
+		Intent:     strPtr("commercial"),
+		Location:   "United States",
+		SavedAt:    mustTime("2026-01-01T00:00:00Z"),
+		SourceSeed: strPtr("rank tracker"),
+		Text:       "rank tracker",
+		Trend: []SavedKeywordTrendPoint{
+			{Month: 6, SearchVolume: intPtr(590), Year: 2026},
+			{Month: 7, SearchVolume: nil, Year: 2026},
+		},
+		VariantCount: 3,
+		Volume:       intPtr(720),
+	}
+}
+
+func createSavedKeywordsResultFixture() CreateSavedKeywordsResult {
+	return CreateSavedKeywordsResult{
+		DuplicateCount: 1,
+		Results: []SavedKeywordResult{
+			{Keyword: "rank tracker", Status: SavedKeywordStatusCreated},
+			{Keyword: "seo api", Status: SavedKeywordStatusSkipped},
+		},
+		SavedCount: 1,
 	}
 }
 

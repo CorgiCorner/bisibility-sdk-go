@@ -560,15 +560,17 @@ type RunRankCheckInput struct {
 
 // HealthResponse is returned by GetHealth.
 type HealthResponse struct {
-	Status    string    `json:"status"`
-	CheckedAt time.Time `json:"checked_at"`
-	Providers struct {
-		SERP []string `json:"serp"`
-	} `json:"providers"`
-	Services struct {
-		App      string `json:"app"`
-		Database string `json:"database"`
-	} `json:"services"`
+	Status string `json:"status"`
+}
+
+// LivenessResponse is returned by GetLiveness.
+type LivenessResponse struct {
+	Status string `json:"status"`
+}
+
+// ReadinessResponse is returned by GetReadiness.
+type ReadinessResponse struct {
+	Status string `json:"status"`
 }
 
 // Capability describes an API capability advertised by Bisibility.

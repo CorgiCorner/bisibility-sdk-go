@@ -66,6 +66,8 @@ func TestDiscoveryMethods(t *testing.T) {
 	t.Parallel()
 
 	health := healthFixture()
+	liveness := livenessFixture()
+	readiness := readinessFixture()
 	capability := Capability{
 		Name:        "addKeywords",
 		OperationID: "addKeywords",
@@ -89,6 +91,26 @@ func TestDiscoveryMethods(t *testing.T) {
 				if got.(*HealthResponse).Status != "ok" {
 					t.Fatalf("status = %q, want ok", got.(*HealthResponse).Status)
 				}
+			},
+		},
+		{
+			name:     "liveness",
+			call:     func(ctx context.Context, c *Client) (any, error) { return c.GetLiveness(ctx) },
+			response: liveness,
+			path:     "/api/v1/liveness",
+			want: func(t *testing.T, got any) {
+				t.Helper()
+				assertEqual(t, got.(*LivenessResponse).Status, "ok")
+			},
+		},
+		{
+			name:     "readiness",
+			call:     func(ctx context.Context, c *Client) (any, error) { return c.GetReadiness(ctx) },
+			response: readiness,
+			path:     "/api/v1/readiness",
+			want: func(t *testing.T, got any) {
+				t.Helper()
+				assertEqual(t, got.(*ReadinessResponse).Status, "ok")
 			},
 		},
 		{
@@ -137,6 +159,59 @@ func TestDiscoveryMethods(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			runDiscoveryTestCase(t, tt)
+		})
+	}
+}
+
+func TestDegradedHealthProbesReturn503WithoutRetry(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		path string
+		call func(context.Context, *Client) (string, error)
+	}{
+		{
+			name: "health",
+			path: "/api/v1/health",
+			call: func(ctx context.Context, client *Client) (string, error) {
+				response, err := client.GetHealth(ctx)
+				if err != nil {
+					return "", err
+				}
+				return response.Status, nil
+			},
+		},
+		{
+			name: "readiness",
+			path: "/api/v1/readiness",
+			call: func(ctx context.Context, client *Client) (string, error) {
+				response, err := client.GetReadiness(ctx)
+				if err != nil {
+					return "", err
+				}
+				return response.Status, nil
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			attempts := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+				attempts++
+				assertEqual(t, request.URL.Path, test.path)
+				writeJSON(t, w, http.StatusServiceUnavailable, map[string]string{"status": "degraded"})
+			}))
+			defer server.Close()
+
+			status, err := test.call(context.Background(), newTestClient(t, server.URL+"/api/v1"))
+			if err != nil {
+				t.Fatalf("probe returned error: %v", err)
+			}
+			assertEqual(t, status, "degraded")
+			assertEqual(t, attempts, 1)
 		})
 	}
 }
@@ -1532,13 +1607,15 @@ func listResponse[T any](items ...T) ListResponse[T] {
 }
 
 func healthFixture() HealthResponse {
-	var health HealthResponse
-	health.Status = "ok"
-	health.CheckedAt = mustTime("2026-01-01T00:00:00Z")
-	health.Providers.SERP = []string{"dataforseo"}
-	health.Services.App = "ok"
-	health.Services.Database = "ok"
-	return health
+	return HealthResponse{Status: "ok"}
+}
+
+func livenessFixture() LivenessResponse {
+	return LivenessResponse{Status: "ok"}
+}
+
+func readinessFixture() ReadinessResponse {
+	return ReadinessResponse{Status: "ok"}
 }
 
 func projectFixture(id string) Project {

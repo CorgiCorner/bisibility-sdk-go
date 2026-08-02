@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+## 0.6.0 - 2026-08-02
+
+- **Breaking for typed consumers:** `GetHealth`, `GetLiveness`, and `GetReadiness` now return
+  status-only responses; degraded health and readiness HTTP 503 responses return normally without
+  retries, while other endpoints retain 503 retries.
+- Added `ListSavedKeywords`, `IterateSavedKeywords`, `CreateSavedKeywords`, and
+  `DeleteProjectSavedKeyword` with `svkw` public IDs.
+
 ## 0.5.1 - 2026-07-30
 
 - Improved package metadata to describe the SDK's SEO rank-tracking, keyword, and ranking-history

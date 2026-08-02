@@ -12,6 +12,10 @@
 
 Idiomatic Go client for the Bisibility REST API.
 
+The [canonical SDK behavior contract](https://bisibility.com/docs/sdks/behavior)
+defines the shared authentication, timeout, retry, cancellation, error, header,
+and cursor semantics implemented by this client.
+
 ## Install
 
 ```sh
@@ -214,9 +218,32 @@ metrics, err := client.GetKeywordMetrics(ctx, projectID, bisibility.GetKeywordMe
 })
 ```
 
+### Saved keywords
+
+`CreateSavedKeywords` persists researched keywords on a project so they survive
+the research cache. Only `Keyword` is required; the API substitutes the project
+default market when `Location` is empty and reports keywords already saved or
+tracked as skipped instead of failing the request. Saved keywords carry `svkw_` public
+IDs and nullable provider metrics:
+
+```go
+saved, err := client.CreateSavedKeywords(ctx, projectID, bisibility.CreateSavedKeywordsInput{
+	Keywords: []bisibility.SavedKeywordItem{
+		bisibility.SavedKeywordText("rank tracker"),
+		bisibility.SavedKeywordInput{Keyword: "seo api", SourceSeed: "rank tracker"},
+	},
+})
+fmt.Printf("saved %d, duplicates %d\n", saved.SavedCount, saved.DuplicateCount)
+
+keywords, err := client.ListSavedKeywords(ctx, projectID, nil)
+
+removed, err := client.DeleteProjectSavedKeyword(ctx, projectID, savedKeywordID)
+```
+
 ## Methods
 
-- Discovery: `GetHealth`, `GetOpenAPI`, `GetCapabilities`, `GetLLMSText`
+- Discovery: `GetHealth`, `GetLiveness`, `GetReadiness`, `GetOpenAPI`, `GetCapabilities`,
+  `GetLLMSText`
 - Public cost: `GetProviderRates`, `GetCostEstimate`
 - Projects: `ListProjects`, `Projects`, `GetProject`, `UpdateProject`,
   `DeleteProject`, `UpdateProjectDefaults`
@@ -234,6 +261,8 @@ metrics, err := client.GetKeywordMetrics(ctx, projectID, bisibility.GetKeywordMe
 - Providers: `ListProviders`, `ConnectProvider`, `TestProviderConnection`,
   `UpdateProviderSettings`, `SetProviderEnabled`, `SetProviderPriority`,
   `SetPrimaryProvider`, `DisconnectProvider`
+- Saved keywords: `ListSavedKeywords`, `IterateSavedKeywords`,
+  `CreateSavedKeywords`, `DeleteProjectSavedKeyword`
 - Saved views: `ListSavedViews`, `CreateSavedView`, `DeleteSavedView`,
   `DeleteProjectSavedView`
 - Competitors: `ListCompetitors`, `AddCompetitor`, `RemoveCompetitor`,

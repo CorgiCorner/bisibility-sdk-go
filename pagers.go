@@ -163,6 +163,11 @@ func (c *Client) IterateProviders(ctx context.Context, projectID string, paginat
 		return c.ListProviders(ctx, projectID, page, options...)
 	})
 }
+func (c *Client) IterateSavedKeywords(ctx context.Context, projectID string, pagination *PaginationOptions, options ...RequestOption) *Pager[SavedKeyword] {
+	return simpleProjectPager(ctx, pagination, func(ctx context.Context, page *PaginationOptions) (*ListResponse[SavedKeyword], error) {
+		return c.ListSavedKeywords(ctx, projectID, page, options...)
+	})
+}
 func (c *Client) IterateSavedViews(ctx context.Context, projectID string, pagination *PaginationOptions, options ...RequestOption) *Pager[SavedView] {
 	return simpleProjectPager(ctx, pagination, func(ctx context.Context, page *PaginationOptions) (*ListResponse[SavedView], error) {
 		return c.ListSavedViews(ctx, projectID, page, options...)

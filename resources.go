@@ -9,6 +9,7 @@ import (
 
 const (
 	teamInvitesResource     = "team/invites"
+	savedKeywordsResource   = "saved-keywords"
 	savedViewsResource      = "saved-views"
 	migrationTokensResource = "migration-tokens"
 )
@@ -180,6 +181,26 @@ func (c *Client) DeleteSavedView(ctx context.Context, viewID string, options ...
 // DeleteProjectSavedView deletes a saved view by project and view ID.
 func (c *Client) DeleteProjectSavedView(ctx context.Context, projectID, viewID string, options ...RequestOption) (*SavedViewDeleteResult, error) {
 	return requestJSON[SavedViewDeleteResult](c, ctx, http.MethodDelete, projectMemberResourcePath(projectID, savedViewsResource, viewID), newRequestConfig(options...))
+}
+
+// ListSavedKeywords lists saved research keywords for a project.
+func (c *Client) ListSavedKeywords(ctx context.Context, projectID string, pagination *PaginationOptions, options ...RequestOption) (*ListResponse[SavedKeyword], error) {
+	config := newRequestConfig(options...)
+	addPagination(config.query, pagination)
+	return requestJSON[ListResponse[SavedKeyword]](c, ctx, http.MethodGet, projectResourcePath(projectID, savedKeywordsResource), config)
+}
+
+// CreateSavedKeywords saves research keywords for a project. Keywords already
+// saved are reported as duplicates instead of failing the request.
+func (c *Client) CreateSavedKeywords(ctx context.Context, projectID string, input CreateSavedKeywordsInput, options ...RequestOption) (*CreateSavedKeywordsResult, error) {
+	config := newRequestConfig(options...)
+	config.body = input
+	return requestJSON[CreateSavedKeywordsResult](c, ctx, http.MethodPost, projectResourcePath(projectID, savedKeywordsResource), config)
+}
+
+// DeleteProjectSavedKeyword deletes a saved keyword by project and saved keyword ID.
+func (c *Client) DeleteProjectSavedKeyword(ctx context.Context, projectID, savedKeywordID string, options ...RequestOption) (*SavedKeywordDeleteResult, error) {
+	return requestJSON[SavedKeywordDeleteResult](c, ctx, http.MethodDelete, projectMemberResourcePath(projectID, savedKeywordsResource, savedKeywordID), newRequestConfig(options...))
 }
 
 // ListCompetitors lists managed competitors and market metadata for a project.

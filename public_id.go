@@ -177,6 +177,8 @@ func validateRoutePublicIDs(routePath string) error {
 			}
 		case "sitemap-monitors":
 			return valueAt(position+1, "monitorID", PublicIDPrefixProject)
+		case "saved-keywords":
+			return valueAt(position+1, "savedKeywordID", PublicIDPrefixSKW)
 		case "saved-views":
 			return valueAt(position+1, "viewID", PublicIDPrefixView)
 		case "competitors":
@@ -326,6 +328,7 @@ var responsePublicIDFieldPrefixes = map[reflect.Type]map[string]PublicIDPrefix{
 	reflect.TypeOf(RevokeTeamInviteResult{}):           {"id": PublicIDPrefixInvite},
 	reflect.TypeOf(SitemapMonitor{}):                   {"id": PublicIDPrefixProject, "project_id": PublicIDPrefixProject},
 	reflect.TypeOf(ProviderConnection{}):               {"id": PublicIDPrefixConn, "project_id": PublicIDPrefixProject},
+	reflect.TypeOf(SavedKeyword{}):                     {"id": PublicIDPrefixSKW},
 	reflect.TypeOf(SavedView{}):                        {"id": PublicIDPrefixView, "created_by_id": PublicIDPrefixUser},
 	reflect.TypeOf(ManagedCompetitor{}):                {"id": PublicIDPrefixComp},
 	reflect.TypeOf(Competitor{}):                       {"id": PublicIDPrefixComp},

@@ -192,6 +192,13 @@ func TestTypedPublicIDInputsFailBeforeHTTP(t *testing.T) {
 			},
 		},
 		{
+			name: "path saved keyword",
+			call: func() error {
+				_, err := client.DeleteProjectSavedKeyword(context.Background(), strictID(PublicIDPrefixProject), strictID(PublicIDPrefixProject))
+				return err
+			},
+		},
+		{
 			name: "path saved view",
 			call: func() error {
 				_, err := client.DeleteProjectSavedView(context.Background(), strictID(PublicIDPrefixProject), strictID(PublicIDPrefixProject))
@@ -353,6 +360,7 @@ func TestPublicIDResponseSchemas(t *testing.T) {
 		reflect.TypeOf(RevokeTeamInviteResult{}):           {"id": PublicIDPrefixInvite},
 		reflect.TypeOf(SitemapMonitor{}):                   {"id": PublicIDPrefixProject, "project_id": PublicIDPrefixProject},
 		reflect.TypeOf(ProviderConnection{}):               {"id": PublicIDPrefixConn, "project_id": PublicIDPrefixProject},
+		reflect.TypeOf(SavedKeyword{}):                     {"id": PublicIDPrefixSKW},
 		reflect.TypeOf(SavedView{}):                        {"id": PublicIDPrefixView, "created_by_id": PublicIDPrefixUser},
 		reflect.TypeOf(ManagedCompetitor{}):                {"id": PublicIDPrefixComp},
 		reflect.TypeOf(Competitor{}):                       {"id": PublicIDPrefixComp},
