@@ -392,21 +392,33 @@ func TestPublicIDResponseSchemas(t *testing.T) {
 	}
 
 	for responseType, fields := range contracts {
-		for jsonName, prefix := range fields {
-			field, ok := responseFieldByJSONName(responseType, jsonName)
-			if !ok {
-				t.Fatalf("%s has no %q response field", responseType.Name(), jsonName)
-			}
-			fieldType := field.Type
-			if fieldType.Kind() == reflect.Pointer {
-				fieldType = fieldType.Elem()
-			}
-			if fieldType.Kind() != reflect.String {
-				t.Fatalf("%s.%s is %s, want string public ID", responseType.Name(), field.Name, field.Type)
-			}
-			if err := ValidatePublicIDPrefix(strictID(prefix), prefix); err != nil {
-				t.Fatalf("invalid schema prefix %q for %s.%s: %v", prefix, responseType.Name(), field.Name, err)
-			}
-		}
+		t.Run(responseType.Name(), func(t *testing.T) {
+			assertResponsePublicIDFields(t, responseType, fields)
+		})
+	}
+}
+
+func assertResponsePublicIDFields(t *testing.T, responseType reflect.Type, fields map[string]PublicIDPrefix) {
+	t.Helper()
+	for jsonName, prefix := range fields {
+		assertResponsePublicIDField(t, responseType, jsonName, prefix)
+	}
+}
+
+func assertResponsePublicIDField(t *testing.T, responseType reflect.Type, jsonName string, prefix PublicIDPrefix) {
+	t.Helper()
+	field, ok := responseFieldByJSONName(responseType, jsonName)
+	if !ok {
+		t.Fatalf("%s has no %q response field", responseType.Name(), jsonName)
+	}
+	fieldType := field.Type
+	if fieldType.Kind() == reflect.Pointer {
+		fieldType = fieldType.Elem()
+	}
+	if fieldType.Kind() != reflect.String {
+		t.Fatalf("%s.%s is %s, want string public ID", responseType.Name(), field.Name, field.Type)
+	}
+	if err := ValidatePublicIDPrefix(strictID(prefix), prefix); err != nil {
+		t.Fatalf("invalid schema prefix %q for %s.%s: %v", prefix, responseType.Name(), field.Name, err)
 	}
 }

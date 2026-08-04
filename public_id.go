@@ -53,6 +53,11 @@ var publicIDPrefixes = map[PublicIDPrefix]struct{}{
 var publicIDSuffixPattern = regexp.MustCompile(`^[a-z][a-z0-9]{23}$`)
 var cloudImportChecksumPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 
+const (
+	cloudImportDeviceValidationError   = "%s.device must be desktop or mobile"
+	cloudImportLocationValidationError = "%s.location must be a supported market"
+)
+
 // IsPublicID reports whether value is a strict Bisibility public ID from the
 // canonical registry. It intentionally rejects legacy IDs and raw database IDs.
 func IsPublicID(value string) bool {
@@ -114,88 +119,111 @@ func validateRoutePublicIDs(routePath string) error {
 	if len(parts) == 0 || parts[0] == "" {
 		return nil
 	}
-	valueAt := func(index int, name string, prefix PublicIDPrefix) error {
-		if index >= len(parts) {
-			return nil
-		}
-		value, err := url.PathUnescape(parts[index])
-		if err != nil {
-			return &ConfigurationError{Message: fmt.Sprintf("%s is not a valid URL path value.", name)}
-		}
-		return requirePublicID(value, name, prefix)
+	handled, err := validateTopLevelRoutePublicID(parts)
+	if err != nil {
+		return err
 	}
+	if handled {
+		return nil
+	}
+	return validateProjectRoutePublicIDs(parts)
+}
 
+func validateTopLevelRoutePublicID(parts []string) (bool, error) {
 	switch parts[0] {
 	case "projects":
-		if err := valueAt(1, "projectID", PublicIDPrefixProject); err != nil {
-			return err
-		}
+		return false, validateRoutePart(parts, 1, "projectID", PublicIDPrefixProject)
 	case "keywords":
 		if len(parts) > 1 && parts[1] != "bulk" {
-			return valueAt(1, "keywordID", PublicIDPrefixKeyword)
+			return true, validateRoutePart(parts, 1, "keywordID", PublicIDPrefixKeyword)
 		}
 	case "api-keys":
-		return valueAt(1, "keyID", PublicIDPrefixKey)
+		return true, validateRoutePart(parts, 1, "keyID", PublicIDPrefixKey)
 	case "rank-checks":
-		return valueAt(1, "checkID", PublicIDPrefixCheck)
+		return true, validateRoutePart(parts, 1, "checkID", PublicIDPrefixCheck)
 	case "alert-rules":
-		return valueAt(1, "ruleID", PublicIDPrefixRule)
+		return true, validateRoutePart(parts, 1, "ruleID", PublicIDPrefixRule)
 	case "team":
 		if len(parts) > 1 && parts[1] == "invites" {
-			return valueAt(2, "inviteID", PublicIDPrefixInvite)
+			return true, validateRoutePart(parts, 2, "inviteID", PublicIDPrefixInvite)
 		}
 	case "saved-views":
-		return valueAt(1, "viewID", PublicIDPrefixView)
+		return true, validateRoutePart(parts, 1, "viewID", PublicIDPrefixView)
 	case "competitors":
-		return valueAt(1, "competitorID", PublicIDPrefixComp)
+		return true, validateRoutePart(parts, 1, "competitorID", PublicIDPrefixComp)
 	case "migration-tokens":
-		return valueAt(1, "tokenID", PublicIDPrefixMToken)
+		return true, validateRoutePart(parts, 1, "tokenID", PublicIDPrefixMToken)
 	case "me":
 		if len(parts) > 2 && parts[1] == "tokens" && parts[2] != "current" {
-			return valueAt(2, "tokenID", PublicIDPrefixPAT)
+			return true, validateRoutePart(parts, 2, "tokenID", PublicIDPrefixPAT)
 		}
 	case "cloud":
 		if len(parts) > 3 && parts[1] == "import" && parts[2] == "sessions" {
-			return valueAt(3, "sessionID", PublicIDPrefixJob)
+			return true, validateRoutePart(parts, 3, "sessionID", PublicIDPrefixJob)
 		}
 	}
+	return false, nil
+}
 
+func validateProjectRoutePublicIDs(parts []string) error {
 	if parts[0] != "projects" || len(parts) < 3 {
 		return nil
 	}
 	for index, part := range parts[2:] {
 		position := index + 2
-		if position+1 >= len(parts) {
-			continue
+		handled, err := validateProjectRoutePart(parts, position, part)
+		if err != nil {
+			return err
 		}
-		switch part {
-		case "webhooks":
-			return valueAt(position+1, "webhookID", PublicIDPrefixWebhook)
-		case "triggered-alerts":
-			if parts[position+1] != "mark-read" {
-				return valueAt(position+1, "alertID", PublicIDPrefixAlert)
-			}
-		case "sitemap-monitors":
-			return valueAt(position+1, "monitorID", PublicIDPrefixProject)
-		case "saved-keywords":
-			return valueAt(position+1, "savedKeywordID", PublicIDPrefixSKW)
-		case "saved-views":
-			return valueAt(position+1, "viewID", PublicIDPrefixView)
-		case "competitors":
-			return valueAt(position+1, "competitorID", PublicIDPrefixComp)
-		case "migration-tokens":
-			return valueAt(position+1, "tokenID", PublicIDPrefixMToken)
-		case "members":
-			if position > 2 && parts[position-1] == "team" {
-				return valueAt(position+1, "memberID", PublicIDPrefixMember)
-			}
-		case "invites":
-			if position > 2 && parts[position-1] == "team" {
-				return valueAt(position+1, "inviteID", PublicIDPrefixInvite)
-			}
+		if handled {
+			return nil
 		}
 	}
 	return nil
+}
+
+func validateProjectRoutePart(parts []string, position int, part string) (bool, error) {
+	if position+1 >= len(parts) {
+		return false, nil
+	}
+	switch part {
+	case "webhooks":
+		return true, validateRoutePart(parts, position+1, "webhookID", PublicIDPrefixWebhook)
+	case "triggered-alerts":
+		if parts[position+1] != "mark-read" {
+			return true, validateRoutePart(parts, position+1, "alertID", PublicIDPrefixAlert)
+		}
+	case "sitemap-monitors":
+		return true, validateRoutePart(parts, position+1, "monitorID", PublicIDPrefixProject)
+	case "saved-keywords":
+		return true, validateRoutePart(parts, position+1, "savedKeywordID", PublicIDPrefixSKW)
+	case "saved-views":
+		return true, validateRoutePart(parts, position+1, "viewID", PublicIDPrefixView)
+	case "competitors":
+		return true, validateRoutePart(parts, position+1, "competitorID", PublicIDPrefixComp)
+	case "migration-tokens":
+		return true, validateRoutePart(parts, position+1, "tokenID", PublicIDPrefixMToken)
+	case "members":
+		if position > 2 && parts[position-1] == "team" {
+			return true, validateRoutePart(parts, position+1, "memberID", PublicIDPrefixMember)
+		}
+	case "invites":
+		if position > 2 && parts[position-1] == "team" {
+			return true, validateRoutePart(parts, position+1, "inviteID", PublicIDPrefixInvite)
+		}
+	}
+	return false, nil
+}
+
+func validateRoutePart(parts []string, index int, name string, prefix PublicIDPrefix) error {
+	if index >= len(parts) {
+		return nil
+	}
+	value, err := url.PathUnescape(parts[index])
+	if err != nil {
+		return &ConfigurationError{Message: fmt.Sprintf("%s is not a valid URL path value.", name)}
+	}
+	return requirePublicID(value, name, prefix)
 }
 
 func validateQueryPublicIDs(query url.Values) error {
@@ -227,75 +255,90 @@ func validateBodyValue(value reflect.Value, path string) error {
 		return nil
 	}
 	if value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer {
-		if value.IsNil() {
-			return nil
-		}
-		return validateBodyValue(value.Elem(), path)
+		return validateBodyReference(value, path)
 	}
+	handled, err := validateKnownBodyValue(value, path)
+	if handled || err != nil {
+		return err
+	}
+	switch value.Kind() {
+	case reflect.Slice, reflect.Array:
+		return validateBodyValues(value, path)
+	case reflect.Struct:
+		return validateBodyStructFields(value, path)
+	default:
+		return nil
+	}
+}
 
+func validateBodyReference(value reflect.Value, path string) error {
+	if value.IsNil() {
+		return nil
+	}
+	return validateBodyValue(value.Elem(), path)
+}
+
+func validateKnownBodyValue(value reflect.Value, path string) (bool, error) {
 	switch input := value.Interface().(type) {
 	case KeywordBulkInput:
-		return validateIDs(input.KeywordIDs, "body.keyword_ids", PublicIDPrefixKeyword)
+		return true, validateIDs(input.KeywordIDs, "body.keyword_ids", PublicIDPrefixKeyword)
 	case CreateAlertRuleInput:
 		if err := validateAlertRuleTargetIDs(input.TargetType, input.TargetIDs, "body.target_ids"); err != nil {
+			return true, err
+		}
+		return true, validateIDs(input.RecipientIDs, "body.recipient_ids", PublicIDPrefixUser)
+	case CloudImportPackage:
+		return true, validateCloudImportPackage(input, path)
+	case CloudImportSessionCreate:
+		return true, validateCloudImportSessionCreate(input, path)
+	case CloudImportKeywordsChunk:
+		return true, validateCloudImportKeywordsChunk(input, path)
+	case CloudImportSectionsChunk:
+		return true, validateCloudImportSectionsChunk(input, path)
+	case CloudImportKeyword:
+		return true, validateCloudImportKeyword(input, path)
+	case CloudImportAlertRule:
+		return true, validateCloudImportAlertRule(input, path)
+	case CloudImportKeywordAlertTarget:
+		return true, validateCloudImportKeywordAlertTarget(input, path)
+	case CloudImportTagAlertTarget:
+		return true, validateCloudImportTagAlertTarget(input, path)
+	}
+	return false, nil
+}
+
+func validateBodyValues(value reflect.Value, path string) error {
+	for index := 0; index < value.Len(); index++ {
+		if err := validateBodyValue(value.Index(index), fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
-		return validateIDs(input.RecipientIDs, "body.recipient_ids", PublicIDPrefixUser)
-	case CloudImportPackage:
-		return validateCloudImportPackage(input, path)
-	case CloudImportSessionCreate:
-		return validateCloudImportSessionCreate(input, path)
-	case CloudImportKeywordsChunk:
-		return validateCloudImportKeywordsChunk(input, path)
-	case CloudImportSectionsChunk:
-		return validateCloudImportSectionsChunk(input, path)
-	case CloudImportKeyword:
-		return validateCloudImportKeyword(input, path)
-	case CloudImportAlertRule:
-		return validateCloudImportAlertRule(input, path)
-	case CloudImportKeywordAlertTarget:
-		return validateCloudImportKeywordAlertTarget(input, path)
-	case CloudImportTagAlertTarget:
-		return validateCloudImportTagAlertTarget(input, path)
 	}
+	return nil
+}
 
-	if value.Kind() == reflect.Slice || value.Kind() == reflect.Array {
-		for index := 0; index < value.Len(); index++ {
-			if err := validateBodyValue(value.Index(index), fmt.Sprintf("%s[%d]", path, index)); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if value.Kind() != reflect.Struct {
-		return nil
-	}
-
+func validateBodyStructFields(value reflect.Value, path string) error {
 	typeOfValue := value.Type()
 	for index := 0; index < value.NumField(); index++ {
 		field := typeOfValue.Field(index)
 		if field.PkgPath != "" {
 			continue
 		}
-		fieldValue := value.Field(index)
-		jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
-		if jsonName == "" || jsonName == "-" {
-			if err := validateBodyValue(fieldValue, path+"."+field.Name); err != nil {
-				return err
-			}
-			continue
-		}
-		if prefix, ok := bodyIDFieldPrefixes[jsonName]; ok {
-			if err := validateBodyFieldIDs(fieldValue, path+"."+jsonName, prefix); err != nil {
-				return err
-			}
-			continue
-		}
-		if err := validateBodyValue(fieldValue, path+"."+jsonName); err != nil {
+		if err := validateBodyStructField(value.Field(index), field, path); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func validateBodyStructField(value reflect.Value, field reflect.StructField, path string) error {
+	jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
+	if jsonName == "" || jsonName == "-" {
+		return validateBodyValue(value, path+"."+field.Name)
+	}
+	if prefix, ok := bodyIDFieldPrefixes[jsonName]; ok {
+		return validateBodyFieldIDs(value, path+"."+jsonName, prefix)
+	}
+	return validateBodyValue(value, path+"."+jsonName)
 }
 
 var bodyIDFieldPrefixes = map[string]PublicIDPrefix{
@@ -364,24 +407,52 @@ func validateResponseValue(value reflect.Value, path string) error {
 	if !value.IsValid() {
 		return nil
 	}
+	value, present := unwrapResponseValue(value)
+	if !present {
+		return nil
+	}
+	switch value.Kind() {
+	case reflect.Slice, reflect.Array:
+		return validateResponseValues(value, path)
+	case reflect.Struct:
+		return validateResponseStruct(value, path)
+	default:
+		return nil
+	}
+}
+
+func unwrapResponseValue(value reflect.Value) (reflect.Value, bool) {
 	for value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer {
 		if value.IsNil() {
-			return nil
+			return reflect.Value{}, false
 		}
 		value = value.Elem()
 	}
-	if value.Kind() == reflect.Slice || value.Kind() == reflect.Array {
-		for index := 0; index < value.Len(); index++ {
-			if err := validateResponseValue(value.Index(index), fmt.Sprintf("%s[%d]", path, index)); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if value.Kind() != reflect.Struct {
-		return nil
-	}
+	return value, true
+}
 
+func validateResponseValues(value reflect.Value, path string) error {
+	for index := 0; index < value.Len(); index++ {
+		if err := validateResponseValue(value.Index(index), fmt.Sprintf("%s[%d]", path, index)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateResponseStruct(value reflect.Value, path string) error {
+	if err := validateRegisteredResponseFields(value, path); err != nil {
+		return err
+	}
+	if value.Type() == reflect.TypeOf(AlertRule{}) {
+		if err := validateAlertRuleResponseIDs(value.Interface().(AlertRule), path); err != nil {
+			return err
+		}
+	}
+	return validateResponseStructFields(value, path)
+}
+
+func validateRegisteredResponseFields(value reflect.Value, path string) error {
 	if prefixes, ok := responsePublicIDFieldPrefixes[value.Type()]; ok {
 		for jsonName, prefix := range prefixes {
 			field, found := responseFieldByJSONName(value.Type(), jsonName)
@@ -394,12 +465,10 @@ func validateResponseValue(value reflect.Value, path string) error {
 			}
 		}
 	}
-	if value.Type() == reflect.TypeOf(AlertRule{}) {
-		if err := validateAlertRuleResponseIDs(value.Interface().(AlertRule), path); err != nil {
-			return err
-		}
-	}
+	return nil
+}
 
+func validateResponseStructFields(value reflect.Value, path string) error {
 	for index := 0; index < value.NumField(); index++ {
 		field := value.Type().Field(index)
 		if field.PkgPath != "" {
@@ -413,32 +482,47 @@ func validateResponseValue(value reflect.Value, path string) error {
 }
 
 func validateResponseFieldID(value reflect.Value, field reflect.StructField, name string, prefix PublicIDPrefix) error {
+	value, presentPointer, skipped, err := unwrapResponseFieldIDValue(value, name)
+	if err != nil {
+		return err
+	}
+	if skipped {
+		return nil
+	}
+	if !value.IsValid() || value.Kind() != reflect.String {
+		return fmt.Errorf("%s must be a string public ID", name)
+	}
+	if value.String() == "" {
+		return validateEmptyResponseFieldID(field, name, presentPointer)
+	}
+	if err := ValidatePublicIDPrefix(value.String(), prefix); err != nil {
+		return fmt.Errorf("%s %w", name, err)
+	}
+	return nil
+}
+
+func unwrapResponseFieldIDValue(value reflect.Value, name string) (reflect.Value, bool, bool, error) {
 	presentPointer := false
 	for value.IsValid() && (value.Kind() == reflect.Interface || value.Kind() == reflect.Pointer) {
 		if value.IsNil() {
 			if value.Kind() == reflect.Pointer {
-				return nil
+				return value, presentPointer, true, nil
 			}
-			return fmt.Errorf("%s is required", name)
+			return reflect.Value{}, presentPointer, false, fmt.Errorf("%s is required", name)
 		}
 		if value.Kind() == reflect.Pointer {
 			presentPointer = true
 		}
 		value = value.Elem()
 	}
-	if !value.IsValid() || value.Kind() != reflect.String {
-		return fmt.Errorf("%s must be a string public ID", name)
+	return value, presentPointer, false, nil
+}
+
+func validateEmptyResponseFieldID(field reflect.StructField, name string, presentPointer bool) error {
+	if !presentPointer && strings.Contains(field.Tag.Get("json"), ",omitempty") {
+		return nil
 	}
-	if value.String() == "" {
-		if !presentPointer && strings.Contains(field.Tag.Get("json"), ",omitempty") {
-			return nil
-		}
-		return fmt.Errorf("%s is required", name)
-	}
-	if err := ValidatePublicIDPrefix(value.String(), prefix); err != nil {
-		return fmt.Errorf("%s %w", name, err)
-	}
-	return nil
+	return fmt.Errorf("%s is required", name)
 }
 
 func responseFieldByJSONName(responseType reflect.Type, jsonName string) (reflect.StructField, bool) {
@@ -522,6 +606,13 @@ func validateAlertRuleResponseIDs(rule AlertRule, path string) error {
 }
 
 func validateCloudImportPackage(input CloudImportPackage, path string) error {
+	if err := validateCloudImportPackageFields(input, path); err != nil {
+		return err
+	}
+	return validateCloudImportPackageItems(input, path)
+}
+
+func validateCloudImportPackageFields(input CloudImportPackage, path string) error {
 	if err := requirePublicID(input.ProjectID, path+".project_id", PublicIDPrefixProject); err != nil {
 		return err
 	}
@@ -543,23 +634,52 @@ func validateCloudImportPackage(input CloudImportPackage, path string) error {
 	if input.Scope != "" && !isCloudImportScope(input.Scope) {
 		return cloudImportConfigurationError("%s.scope must be current or history", path)
 	}
-	for index, keyword := range input.Keywords {
-		if err := validateCloudImportKeyword(keyword, fmt.Sprintf("%s.keywords[%d]", path, index)); err != nil {
+	return nil
+}
+
+func validateCloudImportPackageItems(input CloudImportPackage, path string) error {
+	if err := validateCloudImportPackageKeywords(input.Keywords, path+".keywords"); err != nil {
+		return err
+	}
+	if err := validateCloudImportPackageAlertRules(input.AlertRules, path+".alert_rules"); err != nil {
+		return err
+	}
+	if err := validateCloudImportPackageCompetitors(input.Competitors, path+".competitors"); err != nil {
+		return err
+	}
+	return validateCloudImportPackageSavedViews(input.SavedViews, path+".saved_views")
+}
+
+func validateCloudImportPackageKeywords(keywords []CloudImportKeyword, path string) error {
+	for index, keyword := range keywords {
+		if err := validateCloudImportKeyword(keyword, fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
 	}
-	for index, rule := range input.AlertRules {
-		if err := validateCloudImportAlertRule(rule, fmt.Sprintf("%s.alert_rules[%d]", path, index)); err != nil {
+	return nil
+}
+
+func validateCloudImportPackageAlertRules(rules []CloudImportAlertRule, path string) error {
+	for index, rule := range rules {
+		if err := validateCloudImportAlertRule(rule, fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
 	}
-	for index, competitor := range input.Competitors {
-		if err := validateCloudImportCompetitor(competitor, fmt.Sprintf("%s.competitors[%d]", path, index)); err != nil {
+	return nil
+}
+
+func validateCloudImportPackageCompetitors(competitors []CloudImportCompetitor, path string) error {
+	for index, competitor := range competitors {
+		if err := validateCloudImportCompetitor(competitor, fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
 	}
-	for index, savedView := range input.SavedViews {
-		if err := validateCloudImportSavedView(savedView, fmt.Sprintf("%s.saved_views[%d]", path, index)); err != nil {
+	return nil
+}
+
+func validateCloudImportPackageSavedViews(savedViews []CloudImportSavedView, path string) error {
+	for index, savedView := range savedViews {
+		if err := validateCloudImportSavedView(savedView, fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
 	}
@@ -599,10 +719,10 @@ func validateCloudImportKeyword(input CloudImportKeyword, path string) error {
 		return cloudImportConfigurationError("%s.keyword must contain 1 to 180 characters", path)
 	}
 	if !isCloudImportDevice(input.Device) {
-		return cloudImportConfigurationError("%s.device must be desktop or mobile", path)
+		return cloudImportConfigurationError(cloudImportDeviceValidationError, path)
 	}
 	if !isCloudImportLocation(input.Location) {
-		return cloudImportConfigurationError("%s.location must be a supported market", path)
+		return cloudImportConfigurationError(cloudImportLocationValidationError, path)
 	}
 	if len(input.RankingHistory) > 5000 {
 		return cloudImportConfigurationError("%s.rankingHistory must contain at most 5000 rows", path)
@@ -643,6 +763,19 @@ func validateCloudImportRankingHistory(input CloudImportRankingHistory, path str
 }
 
 func validateCloudImportAlertRule(input CloudImportAlertRule, path string) error {
+	if err := validateCloudImportAlertRuleFields(input, path); err != nil {
+		return err
+	}
+	if err := validateCloudImportAlertRuleChannels(input, path); err != nil {
+		return err
+	}
+	if err := validateCloudImportAlertRulePositions(input, path); err != nil {
+		return err
+	}
+	return validateCloudImportAlertRuleTargets(input, path)
+}
+
+func validateCloudImportAlertRuleFields(input CloudImportAlertRule, path string) error {
 	if err := requirePublicID(input.ID, path+".id", PublicIDPrefixRule); err != nil {
 		return err
 	}
@@ -658,11 +791,19 @@ func validateCloudImportAlertRule(input CloudImportAlertRule, path string) error
 	if len(input.Targets) > 1000 {
 		return cloudImportConfigurationError("%s.targets must contain at most 1000 values", path)
 	}
+	return nil
+}
+
+func validateCloudImportAlertRuleChannels(input CloudImportAlertRule, path string) error {
 	for index, channel := range input.Channels {
 		if channel != AlertChannelEmail && channel != AlertChannelSlack && channel != AlertChannelWebhook {
 			return cloudImportConfigurationError("%s.channels[%d] is unsupported", path, index)
 		}
 	}
+	return nil
+}
+
+func validateCloudImportAlertRulePositions(input CloudImportAlertRule, path string) error {
 	for _, position := range []struct {
 		value *int
 		name  string
@@ -675,6 +816,10 @@ func validateCloudImportAlertRule(input CloudImportAlertRule, path string) error
 			return err
 		}
 	}
+	return nil
+}
+
+func validateCloudImportAlertRuleTargets(input CloudImportAlertRule, path string) error {
 	for index, target := range input.Targets {
 		if err := validateCloudImportAlertRuleTarget(target, fmt.Sprintf("%s.targets[%d]", path, index)); err != nil {
 			return err
@@ -711,13 +856,13 @@ func validateCloudImportKeywordAlertTarget(input CloudImportKeywordAlertTarget, 
 		return err
 	}
 	if input.Device != "" && !isCloudImportDevice(input.Device) {
-		return cloudImportConfigurationError("%s.device must be desktop or mobile", path)
+		return cloudImportConfigurationError(cloudImportDeviceValidationError, path)
 	}
 	if input.Keyword != "" && !hasCloudImportText(input.Keyword, 180) {
 		return cloudImportConfigurationError("%s.keyword must contain 1 to 180 characters", path)
 	}
 	if input.Location != "" && !isCloudImportLocation(input.Location) {
-		return cloudImportConfigurationError("%s.location must be a supported market", path)
+		return cloudImportConfigurationError(cloudImportLocationValidationError, path)
 	}
 	return nil
 }
@@ -794,15 +939,22 @@ func validateCloudImportSessionCreateResponse(input CloudImportSessionCreateResp
 
 func validateCloudImportSourceKeyword(input CloudImportSourceKeyword, path string) error {
 	if !isCloudImportDevice(input.Device) {
-		return cloudImportConfigurationError("%s.device must be desktop or mobile", path)
+		return cloudImportConfigurationError(cloudImportDeviceValidationError, path)
 	}
 	if !isCloudImportLocation(input.Location) {
-		return cloudImportConfigurationError("%s.location must be a supported market", path)
+		return cloudImportConfigurationError(cloudImportLocationValidationError, path)
 	}
 	return nil
 }
 
 func validateCloudImportSessionSections(input CloudImportSessionSections, path string) error {
+	if err := validateCloudImportSessionSectionLimits(input, path); err != nil {
+		return err
+	}
+	return validateCloudImportSessionSectionItems(input, path)
+}
+
+func validateCloudImportSessionSectionLimits(input CloudImportSessionSections, path string) error {
 	if err := validateCloudImportOptionalSlice(input.AlertRules, path+".alert_rules", 500); err != nil {
 		return err
 	}
@@ -815,23 +967,52 @@ func validateCloudImportSessionSections(input CloudImportSessionSections, path s
 	if err := validateCloudImportOptionalSlice(input.SavedViews, path+".saved_views", 500); err != nil {
 		return err
 	}
-	for index, rule := range input.AlertRules {
-		if err := validateCloudImportAlertRule(rule, fmt.Sprintf("%s.alert_rules[%d]", path, index)); err != nil {
+	return nil
+}
+
+func validateCloudImportSessionSectionItems(input CloudImportSessionSections, path string) error {
+	if err := validateCloudImportSessionAlertRules(input.AlertRules, path+".alert_rules"); err != nil {
+		return err
+	}
+	if err := validateCloudImportSessionCompetitors(input.Competitors, path+".competitors"); err != nil {
+		return err
+	}
+	if err := validateCloudImportSessionSavedViews(input.SavedViews, path+".saved_views"); err != nil {
+		return err
+	}
+	return validateCloudImportSessionSourceKeywords(input.SourceKeywordIDs, path+".source_keyword_ids")
+}
+
+func validateCloudImportSessionAlertRules(rules []CloudImportAlertRule, path string) error {
+	for index, rule := range rules {
+		if err := validateCloudImportAlertRule(rule, fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
 	}
-	for index, competitor := range input.Competitors {
-		if err := validateCloudImportCompetitor(competitor, fmt.Sprintf("%s.competitors[%d]", path, index)); err != nil {
+	return nil
+}
+
+func validateCloudImportSessionCompetitors(competitors []CloudImportCompetitor, path string) error {
+	for index, competitor := range competitors {
+		if err := validateCloudImportCompetitor(competitor, fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
 	}
-	for index, savedView := range input.SavedViews {
-		if err := validateCloudImportSavedView(savedView, fmt.Sprintf("%s.saved_views[%d]", path, index)); err != nil {
+	return nil
+}
+
+func validateCloudImportSessionSavedViews(savedViews []CloudImportSavedView, path string) error {
+	for index, savedView := range savedViews {
+		if err := validateCloudImportSavedView(savedView, fmt.Sprintf("%s[%d]", path, index)); err != nil {
 			return err
 		}
 	}
-	for sourceID, keyword := range input.SourceKeywordIDs {
-		if err := validateCloudImportSourceKeyword(keyword, fmt.Sprintf("%s.source_keyword_ids[%q]", path, sourceID)); err != nil {
+	return nil
+}
+
+func validateCloudImportSessionSourceKeywords(keywords map[string]CloudImportSourceKeyword, path string) error {
+	for sourceID, keyword := range keywords {
+		if err := validateCloudImportSourceKeyword(keyword, fmt.Sprintf("%s[%q]", path, sourceID)); err != nil {
 			return err
 		}
 	}

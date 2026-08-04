@@ -563,66 +563,139 @@ func requestText(c *Client, ctx context.Context, method, path string, config req
 }
 
 func (c *Client) do(ctx context.Context, method, path string, config requestConfig) ([]byte, int, error) {
-	if ctx == nil {
-		return nil, 0, &ConfigurationError{Message: "context cannot be nil."}
-	}
-	if err := validateRequestIdentifiers(path, config.query, config.body); err != nil {
+	if err := c.validateRequestConfiguration(ctx, path, config); err != nil {
 		return nil, 0, err
-	}
-	if err := validateProjectHeader(c.headers); err != nil {
-		return nil, 0, err
-	}
-	if err := validateProjectHeader(config.headers); err != nil {
-		return nil, 0, err
-	}
-	if config.auth && c.apiKey == "" {
-		return nil, 0, &ConfigurationError{Message: "apiKey is required for this Bisibility API method."}
 	}
 
 	for attempt := 0; ; attempt++ {
-		req, requestURL, err := c.newRequest(ctx, method, path, config)
-		if err != nil {
-			return nil, 0, err
+		result := c.executeRequestAttempt(ctx, method, path, config, attempt)
+		if result.err == nil {
+			return result.body, result.statusCode, nil
 		}
-		retryable := isIdempotentRequest(req)
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			networkErr := &NetworkError{Cause: err, Method: method, URL: requestURL}
-			if !retryable || attempt >= c.maxRetries || ctx.Err() != nil {
-				return nil, 0, networkErr
-			}
-			if err := waitForRetry(ctx, retryBackoff(attempt)); err != nil {
-				return nil, 0, &NetworkError{Cause: err, Method: method, URL: requestURL}
-			}
-			continue
+		if !result.retry {
+			return result.body, result.statusCode, result.err
 		}
+		if err := waitForRetry(ctx, result.retryDelay); err != nil {
+			return nil, 0, &NetworkError{Cause: err, Method: method, URL: result.requestURL}
+		}
+	}
+}
 
-		body, statusCode, responseErr := readResponse(resp, method, requestURL)
-		resp.Body.Close()
-		if responseErr == nil {
-			return body, statusCode, nil
+type requestAttemptResult struct {
+	body       []byte
+	statusCode int
+	err        error
+	requestURL string
+	retry      bool
+	retryDelay time.Duration
+}
+
+func (c *Client) validateRequestConfiguration(ctx context.Context, path string, config requestConfig) error {
+	if ctx == nil {
+		return &ConfigurationError{Message: "context cannot be nil."}
+	}
+	if err := validateRequestIdentifiers(path, config.query, config.body); err != nil {
+		return err
+	}
+	if err := validateProjectHeader(c.headers); err != nil {
+		return err
+	}
+	if err := validateProjectHeader(config.headers); err != nil {
+		return err
+	}
+	if config.auth && c.apiKey == "" {
+		return &ConfigurationError{Message: "apiKey is required for this Bisibility API method."}
+	}
+	return nil
+}
+
+func (c *Client) executeRequestAttempt(ctx context.Context, method, path string, config requestConfig, attempt int) requestAttemptResult {
+	req, requestURL, err := c.newRequest(ctx, method, path, config)
+	if err != nil {
+		return requestAttemptResult{err: err}
+	}
+
+	retryable := isIdempotentRequest(req)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		result := requestAttemptResult{
+			err:        &NetworkError{Cause: err, Method: method, URL: requestURL},
+			requestURL: requestURL,
 		}
-		if _, accepted := config.acceptedStatusCodes[statusCode]; accepted {
-			return body, statusCode, nil
-		}
-		var networkErr *NetworkError
-		if retryable && attempt < c.maxRetries && errors.As(responseErr, &networkErr) && ctx.Err() == nil {
-			if err := waitForRetry(ctx, retryBackoff(attempt)); err != nil {
-				return nil, 0, &NetworkError{Cause: err, Method: method, URL: requestURL}
-			}
-			continue
-		}
-		var apiErr *APIError
-		if !retryable || attempt >= c.maxRetries || !errors.As(responseErr, &apiErr) || (apiErr.StatusCode != http.StatusTooManyRequests && apiErr.StatusCode != http.StatusServiceUnavailable) {
-			return body, statusCode, responseErr
-		}
-		delay := retryBackoff(attempt)
-		if retryAfter, ok := apiErr.RetryAfter(); ok {
-			delay = retryAfter
-		}
-		if err := waitForRetry(ctx, delay); err != nil {
-			return nil, 0, &NetworkError{Cause: err, Method: method, URL: requestURL}
-		}
+		return c.retryNetworkFailure(ctx, retryable, attempt, result)
+	}
+
+	body, statusCode, responseErr := readResponse(resp, method, requestURL)
+	resp.Body.Close()
+	if responseErr == nil {
+		return requestAttemptResult{body: body, statusCode: statusCode}
+	}
+	return c.responseFailure(ctx, config, retryable, attempt, body, statusCode, requestURL, responseErr)
+}
+
+func (c *Client) retryNetworkFailure(ctx context.Context, retryable bool, attempt int, result requestAttemptResult) requestAttemptResult {
+	if !retryable {
+		return result
+	}
+	if attempt >= c.maxRetries {
+		return result
+	}
+	if ctx.Err() != nil {
+		return result
+	}
+	result.retry = true
+	result.retryDelay = retryBackoff(attempt)
+	return result
+}
+
+func (c *Client) responseFailure(ctx context.Context, config requestConfig, retryable bool, attempt int, body []byte, statusCode int, requestURL string, responseErr error) requestAttemptResult {
+	result := requestAttemptResult{
+		body:       body,
+		statusCode: statusCode,
+		err:        responseErr,
+		requestURL: requestURL,
+	}
+	if _, accepted := config.acceptedStatusCodes[statusCode]; accepted {
+		result.err = nil
+		return result
+	}
+
+	var networkErr *NetworkError
+	if errors.As(responseErr, &networkErr) {
+		return c.retryNetworkFailure(ctx, retryable, attempt, result)
+	}
+
+	var apiErr *APIError
+	if !errors.As(responseErr, &apiErr) {
+		return result
+	}
+	return c.retryAPIResponseFailure(retryable, attempt, apiErr, result)
+}
+
+func (c *Client) retryAPIResponseFailure(retryable bool, attempt int, apiErr *APIError, result requestAttemptResult) requestAttemptResult {
+	if !retryable {
+		return result
+	}
+	if attempt >= c.maxRetries {
+		return result
+	}
+	if !isRetryableResponseStatus(apiErr.StatusCode) {
+		return result
+	}
+	result.retry = true
+	result.retryDelay = retryBackoff(attempt)
+	if retryAfter, ok := apiErr.RetryAfter(); ok {
+		result.retryDelay = retryAfter
+	}
+	return result
+}
+
+func isRetryableResponseStatus(statusCode int) bool {
+	switch statusCode {
+	case http.StatusTooManyRequests, http.StatusServiceUnavailable:
+		return true
+	default:
+		return false
 	}
 }
 

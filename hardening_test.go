@@ -24,115 +24,214 @@ func collectPager[T any](t *testing.T, pager *Pager[T]) []T {
 	return items
 }
 
-func TestResourcePagers(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/projects/prj_a00000000000000000000000/keywords" && r.URL.Query().Get("filter[tag]") != "stable" {
+type pagerResponse struct {
+	prefix PublicIDPrefix
+	tag    string
+	fields map[string]any
+}
+
+func (response pagerResponse) item(cursor string) (map[string]any, any) {
+	id := "second"
+	if response.prefix != "" {
+		id = strictID(response.prefix)
+	}
+	next := any(nil)
+	if cursor != "next" {
+		next = "next"
+		if response.prefix == "" {
+			id = "first"
+		}
+	}
+	item := map[string]any{"id": id}
+	for key, value := range response.fields {
+		item[key] = value
+	}
+	return item, next
+}
+
+type pagerCase struct {
+	name     string
+	path     string
+	response pagerResponse
+	iterate  func(*testing.T, *Client, context.Context) int
+}
+
+func pagerTestResponses(cases []pagerCase) map[string]pagerResponse {
+	responses := make(map[string]pagerResponse, len(cases))
+	for _, testCase := range cases {
+		responses[testCase.path] = testCase.response
+	}
+	return responses
+}
+
+func pagerTestServer(t *testing.T, responses map[string]pagerResponse) http.Handler {
+	t.Helper()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response, ok := responses[r.URL.Path]
+		if !ok {
+			t.Errorf("unexpected pager path %q", r.URL.Path)
+			return
+		}
+		if response.tag != "" && r.URL.Query().Get("filter[tag]") != response.tag {
 			t.Errorf("keyword tag filter was not preserved")
 		}
-		prefix := PublicIDPrefix("")
-		switch {
-		case strings.Contains(r.URL.Path, "/api-keys"):
-			prefix = PublicIDPrefixKey
-		case strings.Contains(r.URL.Path, "/webhooks"):
-			prefix = PublicIDPrefixWebhook
-		case strings.Contains(r.URL.Path, "/keywords/") && strings.Contains(r.URL.Path, "/rank-checks"):
-			prefix = PublicIDPrefixCheck
-		case strings.Contains(r.URL.Path, "/keywords"):
-			prefix = PublicIDPrefixKeyword
-		case strings.Contains(r.URL.Path, "/signals"):
-			prefix = PublicIDPrefixSignal
-		case strings.Contains(r.URL.Path, "/alert-rules"):
-			prefix = PublicIDPrefixRule
-		case strings.Contains(r.URL.Path, "/triggered-alerts"):
-			prefix = PublicIDPrefixAlert
-		case strings.Contains(r.URL.Path, "/team/members"):
-			prefix = PublicIDPrefixMember
-		case strings.Contains(r.URL.Path, "/team/invites"):
-			prefix = PublicIDPrefixInvite
-		case strings.Contains(r.URL.Path, "/saved-keywords"):
-			prefix = PublicIDPrefixSKW
-		case strings.Contains(r.URL.Path, "/saved-views"):
-			prefix = PublicIDPrefixView
-		case strings.Contains(r.URL.Path, "/competitors"):
-			prefix = PublicIDPrefixComp
-		case strings.Contains(r.URL.Path, "/migration-tokens"):
-			prefix = PublicIDPrefixMToken
-		}
-		next := any(nil)
-		id := "second"
-		if prefix != "" {
-			id = strictID(prefix)
-		}
-		if r.URL.Query().Get("cursor") != "next" {
-			next = "next"
-			if prefix == "" {
-				id = "first"
-			}
-		}
-		item := map[string]any{"id": id}
-		if prefix == PublicIDPrefixKeyword {
-			item["project_id"] = strictID(PublicIDPrefixProject)
-		}
-		if prefix == PublicIDPrefixCheck {
-			item["keyword_id"] = strictID(PublicIDPrefixKeyword)
-		}
-		if prefix == PublicIDPrefixSignal {
-			item["project_id"] = strictID(PublicIDPrefixProject)
-			item["public_id"] = strictID(PublicIDPrefixSignal)
-		}
+		item, next := response.item(r.URL.Query().Get("cursor"))
 		writeJSON(t, w, http.StatusOK, map[string]any{
 			"data": []map[string]any{item},
 			"meta": map[string]any{"next_cursor": next},
 		})
-	}))
+	})
+}
+
+func TestResourcePagers(t *testing.T) {
+	const projectID = "prj_a00000000000000000000000"
+	const keywordID = "kw_a00000000000000000000000"
+	cases := []pagerCase{
+		{
+			name:     "API keys",
+			path:     "/api/v1/api-keys",
+			response: pagerResponse{prefix: PublicIDPrefixKey},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateAPIKeys(ctx, nil)))
+			},
+		},
+		{
+			name:     "project API keys",
+			path:     "/api/v1/projects/" + projectID + "/api-keys",
+			response: pagerResponse{prefix: PublicIDPrefixKey},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateProjectAPIKeys(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "webhooks",
+			path:     "/api/v1/projects/" + projectID + "/webhooks",
+			response: pagerResponse{prefix: PublicIDPrefixWebhook},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateWebhooks(ctx, projectID, nil)))
+			},
+		},
+		{
+			name: "keywords",
+			path: "/api/v1/projects/" + projectID + "/keywords",
+			response: pagerResponse{
+				prefix: PublicIDPrefixKeyword,
+				tag:    "stable",
+				fields: map[string]any{"project_id": strictID(PublicIDPrefixProject)},
+			},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateKeywords(ctx, projectID, &ListKeywordsOptions{Tag: "stable"})))
+			},
+		},
+		{
+			name: "rank checks",
+			path: "/api/v1/keywords/" + keywordID + "/rank-checks",
+			response: pagerResponse{
+				prefix: PublicIDPrefixCheck,
+				fields: map[string]any{"keyword_id": strictID(PublicIDPrefixKeyword)},
+			},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateRankChecks(ctx, keywordID, nil)))
+			},
+		},
+		{
+			name: "signals",
+			path: "/api/v1/projects/" + projectID + "/signals",
+			response: pagerResponse{
+				prefix: PublicIDPrefixSignal,
+				fields: map[string]any{
+					"project_id": strictID(PublicIDPrefixProject),
+					"public_id":  strictID(PublicIDPrefixSignal),
+				},
+			},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateSignals(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "alerts",
+			path:     "/api/v1/projects/" + projectID + "/alert-rules",
+			response: pagerResponse{prefix: PublicIDPrefixRule},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateAlertRules(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "triggered alerts",
+			path:     "/api/v1/projects/" + projectID + "/triggered-alerts",
+			response: pagerResponse{prefix: PublicIDPrefixAlert},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateTriggeredAlerts(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "members",
+			path:     "/api/v1/projects/" + projectID + "/team/members",
+			response: pagerResponse{prefix: PublicIDPrefixMember},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateTeamMembers(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "invites",
+			path:     "/api/v1/projects/" + projectID + "/team/invites",
+			response: pagerResponse{prefix: PublicIDPrefixInvite},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateTeamInvites(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "providers",
+			path:     "/api/v1/projects/" + projectID + "/providers",
+			response: pagerResponse{},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateProviders(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "saved keywords",
+			path:     "/api/v1/projects/" + projectID + "/saved-keywords",
+			response: pagerResponse{prefix: PublicIDPrefixSKW},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateSavedKeywords(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "views",
+			path:     "/api/v1/projects/" + projectID + "/saved-views",
+			response: pagerResponse{prefix: PublicIDPrefixView},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateSavedViews(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "competitors",
+			path:     "/api/v1/projects/" + projectID + "/competitors",
+			response: pagerResponse{prefix: PublicIDPrefixComp},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateCompetitors(ctx, projectID, nil)))
+			},
+		},
+		{
+			name:     "migration tokens",
+			path:     "/api/v1/projects/" + projectID + "/migration-tokens",
+			response: pagerResponse{prefix: PublicIDPrefixMToken},
+			iterate: func(t *testing.T, client *Client, ctx context.Context) int {
+				return len(collectPager(t, client.IterateMigrationTokens(ctx, projectID, nil)))
+			},
+		},
+	}
+	server := httptest.NewServer(pagerTestServer(t, pagerTestResponses(cases)))
 	defer server.Close()
 	client := newTestClient(t, server.URL+"/api/v1")
 	ctx := context.Background()
 
-	if got := len(collectPager(t, client.IterateAPIKeys(ctx, nil))); got != 2 {
-		t.Fatalf("API keys = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateProjectAPIKeys(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("project API keys = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateWebhooks(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("webhooks = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateKeywords(ctx, "prj_a00000000000000000000000", &ListKeywordsOptions{Tag: "stable"}))); got != 2 {
-		t.Fatalf("keywords = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateRankChecks(ctx, "kw_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("rank checks = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateSignals(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("signals = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateAlertRules(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("alerts = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateTriggeredAlerts(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("triggered alerts = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateTeamMembers(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("members = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateTeamInvites(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("invites = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateProviders(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("providers = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateSavedKeywords(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("saved keywords = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateSavedViews(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("views = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateCompetitors(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("competitors = %d", got)
-	}
-	if got := len(collectPager(t, client.IterateMigrationTokens(ctx, "prj_a00000000000000000000000", nil))); got != 2 {
-		t.Fatalf("migration tokens = %d", got)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := testCase.iterate(t, client, ctx); got != 2 {
+				t.Fatalf("items = %d, want 2", got)
+			}
+		})
 	}
 }
 
@@ -201,6 +300,7 @@ func TestRetryPolicy(t *testing.T) {
 
 	t.Run("cancellation interrupts retry sleep", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			cancel()
 			writeJSON(t, w, http.StatusServiceUnavailable, map[string]any{"type": "busy"})

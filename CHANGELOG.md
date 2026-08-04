@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.6.1 - 2026-08-04
+
+- No SDK API or runtime behavior changes. This maintenance release updates public module
+  validation and preserves the v0.6.0 surface.
+
 ## 0.6.0 - 2026-08-02
 
 - **Breaking for typed consumers:** `GetHealth`, `GetLiveness`, and `GetReadiness` now return

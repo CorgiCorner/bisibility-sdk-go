@@ -80,7 +80,9 @@ type CloudImportKeywordAlertTarget struct {
 	Location  string `json:"location,omitempty"`
 }
 
-func (CloudImportKeywordAlertTarget) cloudImportAlertRuleTarget() {}
+func (CloudImportKeywordAlertTarget) cloudImportAlertRuleTarget() {
+	// This marker seals CloudImportAlertRuleTarget to supported SDK variants.
+}
 
 // CloudImportTagAlertTarget is the tag variant of an alert-rule target. Its
 // JSON representation always includes type: "tag".
@@ -88,7 +90,9 @@ type CloudImportTagAlertTarget struct {
 	Tag string `json:"tag"`
 }
 
-func (CloudImportTagAlertTarget) cloudImportAlertRuleTarget() {}
+func (CloudImportTagAlertTarget) cloudImportAlertRuleTarget() {
+	// This marker seals CloudImportAlertRuleTarget to supported SDK variants.
+}
 
 // CloudImportAlertRule is a migrated alert rule. ID and Name are required.
 type CloudImportAlertRule struct {
@@ -234,7 +238,9 @@ type CloudImportKeywordsChunk struct {
 	Keywords []CloudImportKeyword `json:"keywords"`
 }
 
-func (CloudImportKeywordsChunk) cloudImportUploadChunk() {}
+func (CloudImportKeywordsChunk) cloudImportUploadChunk() {
+	// This marker seals CloudImportUploadChunk to supported SDK variants.
+}
 
 // CloudImportSectionsChunk uploads a required sections object. Its JSON
 // representation always includes kind: "sections".
@@ -243,7 +249,9 @@ type CloudImportSectionsChunk struct {
 	Sections CloudImportSessionSections `json:"sections"`
 }
 
-func (CloudImportSectionsChunk) cloudImportUploadChunk() {}
+func (CloudImportSectionsChunk) cloudImportUploadChunk() {
+	// This marker seals CloudImportUploadChunk to supported SDK variants.
+}
 
 // CloudImportChunkResponse is returned when a chunk is accepted.
 type CloudImportChunkResponse struct {

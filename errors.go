@@ -21,7 +21,9 @@ type ConfigurationError struct {
 func (e *ConfigurationError) Error() string {
 	return e.Message
 }
-func (e *ConfigurationError) bisibilityError() {}
+func (e *ConfigurationError) bisibilityError() {
+	// This marker seals BisibilityError to SDK-defined error types.
+}
 
 // APIError reports a non-2xx HTTP response from the Bisibility API.
 type APIError struct {
@@ -44,7 +46,9 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("Bisibility API request failed with status %d.", e.StatusCode)
 }
 
-func (e *APIError) bisibilityError() {}
+func (e *APIError) bisibilityError() {
+	// This marker seals BisibilityError to SDK-defined error types.
+}
 
 // IsRateLimit reports whether the API returned HTTP 429.
 func (e *APIError) IsRateLimit() bool { return e.StatusCode == http.StatusTooManyRequests }
@@ -85,7 +89,9 @@ func (e *NetworkError) Error() string {
 func (e *NetworkError) Unwrap() error {
 	return e.Cause
 }
-func (e *NetworkError) bisibilityError() {}
+func (e *NetworkError) bisibilityError() {
+	// This marker seals BisibilityError to SDK-defined error types.
+}
 
 // ResponseError reports invalid successful API responses, such as malformed JSON.
 type ResponseError struct {
@@ -103,4 +109,6 @@ func (e *ResponseError) Error() string {
 func (e *ResponseError) Unwrap() error {
 	return e.Cause
 }
-func (e *ResponseError) bisibilityError() {}
+func (e *ResponseError) bisibilityError() {
+	// This marker seals BisibilityError to SDK-defined error types.
+}
