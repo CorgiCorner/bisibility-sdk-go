@@ -112,3 +112,20 @@ func (e *ResponseError) Unwrap() error {
 func (e *ResponseError) bisibilityError() {
 	// This marker seals BisibilityError to SDK-defined error types.
 }
+
+// ProviderPrioritySyncError reports a priority PATCH failure after a provider connect succeeds.
+type ProviderPrioritySyncError struct {
+	Cause error
+}
+
+func (e *ProviderPrioritySyncError) Error() string {
+	return "provider connected but priority synchronization failed"
+}
+
+func (e *ProviderPrioritySyncError) Unwrap() error {
+	return e.Cause
+}
+
+func (e *ProviderPrioritySyncError) bisibilityError() {
+	// This marker seals BisibilityError to SDK-defined error types.
+}

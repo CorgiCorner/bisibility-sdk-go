@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.7.0 - 2026-08-10
+
+- Updated `ConnectProvider` for the current provider-priority API and corrected the default User-Agent version.
+
 ## 0.6.1 - 2026-08-04
 
 - No SDK API or runtime behavior changes. This maintenance release updates public module

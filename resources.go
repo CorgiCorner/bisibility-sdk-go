@@ -119,9 +119,47 @@ func (c *Client) ListProviders(ctx context.Context, projectID string, pagination
 // ConnectProvider connects or updates credentials for a project provider.
 func (c *Client) ConnectProvider(ctx context.Context, projectID string, providerID ProviderID, input ConnectProviderInput, options ...RequestOption) (*ProviderConnection, error) {
 	config := newRequestConfig(options...)
-	config.body = input
+	connectInput := input
+	connectInput.Primary = nil
+	connectInput.Priority = nil
+	config.body = connectInput
 	path := projectMemberResourcePath(projectID, "providers", string(providerID)) + "/connect"
-	return requestJSON[ProviderConnection](c, ctx, http.MethodPost, path, config)
+	connection, err := requestJSON[ProviderConnection](c, ctx, http.MethodPost, path, config)
+	if err != nil {
+		return nil, err
+	}
+
+	priority, shouldSyncPriority := connectProviderPriority(input)
+	if !shouldSyncPriority {
+		return connection, nil
+	}
+	updated, err := c.syncConnectedProviderPriority(ctx, projectID, providerID, priority, options...)
+	if err != nil {
+		return connection, &ProviderPrioritySyncError{Cause: err}
+	}
+	if updated == nil {
+		return connection, nil
+	}
+	return updated, nil
+}
+
+func connectProviderPriority(input ConnectProviderInput) (int, bool) {
+	if input.Primary != nil && *input.Primary {
+		return 0, true
+	}
+	if input.Priority != nil {
+		return *input.Priority, true
+	}
+	return 0, false
+}
+
+func (c *Client) syncConnectedProviderPriority(ctx context.Context, projectID string, providerID ProviderID, priority int, options ...RequestOption) (*ProviderConnection, error) {
+	config := newRequestConfig(options...)
+	config.body = ProviderSettingsInput{Priority: &priority}
+	config.headers.Del("Idempotency-Key")
+	config.idempotencyKey = ""
+	config.omitIdempotencyKey = true
+	return requestJSON[ProviderConnection](c, ctx, http.MethodPatch, projectMemberResourcePath(projectID, "providers", string(providerID)), config)
 }
 
 // TestProviderConnection tests credentials or a stored connection for a project provider.

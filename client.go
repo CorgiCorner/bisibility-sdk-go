@@ -26,7 +26,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.5.1"
+const Version = "0.7.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -179,6 +179,7 @@ type requestConfig struct {
 	rawBody             io.Reader
 	headers             http.Header
 	idempotencyKey      string
+	omitIdempotencyKey  bool
 	migrationToken      string
 	query               url.Values
 }
@@ -774,7 +775,9 @@ func (c *Client) applyHeaders(req *http.Request, config requestConfig, hasBody b
 		// WithRequestHeader.
 		req.Header.Del("Authorization")
 	}
-	if config.idempotencyKey != "" {
+	if config.omitIdempotencyKey {
+		req.Header.Del("Idempotency-Key")
+	} else if config.idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", config.idempotencyKey)
 	}
 	if hasBody && req.Header.Get(contentTypeHeader) == "" {

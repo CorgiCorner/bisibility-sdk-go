@@ -3,8 +3,10 @@ package bisibility
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -28,7 +30,6 @@ func TestNewEndpointMethods(t *testing.T) {
 
 	enabled := true
 	disabled := false
-	primary := true
 	notPrimary := false
 	priority := 0
 	threshold := 10
@@ -314,8 +315,6 @@ func TestNewEndpointMethods(t *testing.T) {
 					CostPerCheck: &cost,
 					Enabled:      &enabled,
 					Login:        "login",
-					Primary:      &primary,
-					Priority:     &priority,
 					Secret:       "secret",
 				})
 			},
@@ -325,8 +324,6 @@ func TestNewEndpointMethods(t *testing.T) {
 				"cost_per_check":0.06,
 				"enabled":true,
 				"login":"login",
-				"primary":true,
-				"priority":0,
 				"secret":"secret"
 			}`,
 			response:        providerConnectionJSON(ProviderIDDataForSEO),
@@ -869,6 +866,212 @@ func TestNewEndpointMethods(t *testing.T) {
 			runResourceMethodTestCase(t, tt)
 		})
 	}
+}
+
+func TestConnectProviderSynchronizesPriorityAfterConnect(t *testing.T) {
+	t.Parallel()
+
+	projectID := "prj_a00000000000000000000000"
+	providerID := ProviderIDDataForSEO
+	primary := true
+	notPrimary := false
+	priority := 7
+
+	tests := []struct {
+		name         string
+		input        ConnectProviderInput
+		wantPatch    bool
+		wantPriority int
+	}{
+		{
+			name: "primary wins over an explicit priority",
+			input: ConnectProviderInput{
+				Login:    "login",
+				Primary:  &primary,
+				Priority: &priority,
+				Secret:   "secret",
+			},
+			wantPatch:    true,
+			wantPriority: 0,
+		},
+		{
+			name: "explicit priority is synchronized when primary is false",
+			input: ConnectProviderInput{
+				Login:    "login",
+				Primary:  &notPrimary,
+				Priority: &priority,
+				Secret:   "secret",
+			},
+			wantPatch:    true,
+			wantPriority: priority,
+		},
+		{
+			name: "primary false alone does not require a priority patch",
+			input: ConnectProviderInput{
+				Login:   "login",
+				Primary: &notPrimary,
+				Secret:  "secret",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			requests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				captured := captureRequest(t, r)
+				switch requests {
+				case 1:
+					assertEqual(t, captured.Method, http.MethodPost)
+					assertEqual(t, captured.Path, "/api/v1/projects/"+projectID+"/providers/dataforseo/connect")
+					assertEqual(t, captured.Header.Get("Idempotency-Key"), "connect-idempotency-key")
+					assertEqual(t, captured.Header.Get("X-Request-Trace"), "connect-priority-sync")
+					var postBody map[string]any
+					if err := json.Unmarshal([]byte(captured.Body), &postBody); err != nil {
+						t.Fatalf("decode connect body: %v", err)
+					}
+					if _, ok := postBody["primary"]; ok {
+						t.Fatal("connect POST included primary")
+					}
+					if _, ok := postBody["priority"]; ok {
+						t.Fatal("connect POST included priority")
+					}
+					writeJSON(t, w, http.StatusCreated, providerConnectionJSON(providerID))
+				case 2:
+					if !tt.wantPatch {
+						t.Fatal("primary false alone made an unexpected priority patch")
+					}
+					assertEqual(t, captured.Method, http.MethodPatch)
+					assertEqual(t, captured.Path, "/api/v1/projects/"+projectID+"/providers/dataforseo")
+					assertEqual(t, captured.Header.Get("Idempotency-Key"), "")
+					assertEqual(t, captured.Header.Get("X-Request-Trace"), "connect-priority-sync")
+					assertJSONEqual(t, captured.Body, `{"priority":`+strconv.Itoa(tt.wantPriority)+`}`)
+					response := providerConnectionJSON(providerID)
+					response["priority"] = tt.wantPriority
+					writeJSON(t, w, http.StatusOK, response)
+				default:
+					t.Fatalf("unexpected request %d", requests)
+				}
+			}))
+			defer server.Close()
+
+			client, err := NewClient(
+				WithAPIKey(testAPIKey),
+				WithBaseURL(server.URL+"/api/v1"),
+				WithDefaultHeader("Idempotency-Key", "default-idempotency-key"),
+			)
+			if err != nil {
+				t.Fatalf("NewClient returned error: %v", err)
+			}
+			connection, err := client.ConnectProvider(
+				context.Background(),
+				projectID,
+				providerID,
+				tt.input,
+				WithIdempotencyKey("connect-idempotency-key"),
+				WithRequestHeader("X-Request-Trace", "connect-priority-sync"),
+			)
+			if err != nil {
+				t.Fatalf("ConnectProvider returned error: %v", err)
+			}
+			if connection == nil {
+				t.Fatal("ConnectProvider returned nil connection")
+			}
+			assertEqual(t, connection.Provider, providerID)
+			assertEqual(t, connection.Priority, tt.wantPriority)
+			assertEqual(t, requests, 1+btoi(tt.wantPatch))
+		})
+	}
+}
+
+func TestConnectProviderDoesNotSynchronizePriorityWhenConnectFails(t *testing.T) {
+	t.Parallel()
+
+	projectID := "prj_a00000000000000000000000"
+	primary := true
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		captured := captureRequest(t, r)
+		assertEqual(t, captured.Method, http.MethodPost)
+		assertEqual(t, captured.Path, "/api/v1/projects/"+projectID+"/providers/dataforseo/connect")
+		http.Error(w, "connect failed", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL+"/api/v1")
+	connection, err := client.ConnectProvider(
+		context.Background(),
+		projectID,
+		ProviderIDDataForSEO,
+		ConnectProviderInput{Primary: &primary},
+	)
+	if connection != nil {
+		t.Fatal("ConnectProvider returned a connection after the connect POST failed")
+	}
+	if err == nil {
+		t.Fatal("ConnectProvider returned nil error after the connect POST failed")
+	}
+	var syncErr *ProviderPrioritySyncError
+	if errors.As(err, &syncErr) {
+		t.Fatalf("ConnectProvider returned ProviderPrioritySyncError for the connect POST failure: %v", err)
+	}
+	assertEqual(t, requests, 1)
+}
+
+func TestConnectProviderReturnsConnectionWhenPrioritySynchronizationFails(t *testing.T) {
+	t.Parallel()
+
+	projectID := "prj_a00000000000000000000000"
+	priority := 3
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		captured := captureRequest(t, r)
+		if requests == 1 {
+			assertEqual(t, captured.Method, http.MethodPost)
+			assertEqual(t, captured.Header.Get("Idempotency-Key"), "connect-idempotency-key")
+			writeJSON(t, w, http.StatusCreated, providerConnectionJSON(ProviderIDDataForSEO))
+			return
+		}
+		assertEqual(t, captured.Method, http.MethodPatch)
+		assertEqual(t, captured.Header.Get("Idempotency-Key"), "")
+		assertJSONEqual(t, captured.Body, `{"priority":3}`)
+		http.Error(w, "priority synchronization failed", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL+"/api/v1")
+	connection, err := client.ConnectProvider(
+		context.Background(),
+		projectID,
+		ProviderIDDataForSEO,
+		ConnectProviderInput{Priority: &priority},
+		WithIdempotencyKey("connect-idempotency-key"),
+	)
+	if connection == nil {
+		t.Fatal("ConnectProvider returned nil connection after the successful connect")
+	}
+	assertEqual(t, connection.ID, "conn_a00000000000000000000000")
+	assertEqual(t, requests, 2)
+
+	var syncErr *ProviderPrioritySyncError
+	if !errors.As(err, &syncErr) {
+		t.Fatalf("ConnectProvider error = %T, want ProviderPrioritySyncError", err)
+	}
+	if errors.Unwrap(syncErr) == nil {
+		t.Fatal("ProviderPrioritySyncError does not unwrap the PATCH failure")
+	}
+}
+
+func btoi(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }
 
 func runResourceMethodTestCase(t *testing.T, tt resourceMethodTestCase) {
