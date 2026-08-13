@@ -240,6 +240,50 @@ keywords, err := client.ListSavedKeywords(ctx, projectID, nil)
 removed, err := client.DeleteProjectSavedKeyword(ctx, projectID, savedKeywordID)
 ```
 
+### Domain overview
+
+`AnalyzeDomainOverview` returns either a cache-aware estimate or a report with core metrics plus
+ranked-keyword and relevant-page module outcomes. Estimate first, then pass an explicit
+`MaxCostCents` pointer before any request that may spend provider budget. A zero cap makes the
+operation cache-only. `Fresh` bypasses caches but never removes the explicit cap requirement.
+
+```go
+estimateOnly := true
+estimate, err := client.AnalyzeDomainOverview(ctx, projectID, bisibility.AnalyzeDomainOverviewOptions{
+	Target:       "example.com",
+	LocationCode: 2840,
+	LanguageCode: "en",
+	EstimateOnly: &estimateOnly,
+})
+if err != nil {
+	log.Fatal(err)
+}
+if estimate.Data.Estimate == nil {
+	log.Fatal("expected an estimate")
+}
+
+maxCost := 10
+report, err := client.AnalyzeDomainOverview(ctx, projectID, bisibility.AnalyzeDomainOverviewOptions{
+	Target:       "example.com",
+	LocationCode: 2840,
+	LanguageCode: "en",
+	MaxCostCents: &maxCost,
+})
+if err != nil {
+	log.Fatal(err)
+}
+if report.Data.Report != nil {
+	fmt.Printf("state=%s charged=%.4f cents\n", report.Data.Report.State, report.Data.Report.CostCents)
+}
+```
+
+`LoadDomainOverviewHistory`, `LoadDomainOverviewKeywords`, and `LoadDomainOverviewPages` load
+separately priced modules for an unexpired overview snapshot. Every input includes a required
+`MaxCostCents` field, with zero used for cache-only attempts. The API returns failed top-level
+operations as RFC problem responses; partial analysis reports keep typed success or failure
+outcomes on their nested keyword and page modules. Decode `APIError.Problem.Errors` into
+`DomainOverviewProblemErrors` when callers need the failure reason, charged cost, or reset time.
+
 ## Methods
 
 - Discovery: `GetHealth`, `GetLiveness`, `GetReadiness`, `GetOpenAPI`, `GetCapabilities`,
@@ -263,6 +307,8 @@ removed, err := client.DeleteProjectSavedKeyword(ctx, projectID, savedKeywordID)
   `SetPrimaryProvider`, `DisconnectProvider`
 - Saved keywords: `ListSavedKeywords`, `IterateSavedKeywords`,
   `CreateSavedKeywords`, `DeleteProjectSavedKeyword`
+- Domain overview: `AnalyzeDomainOverview`, `LoadDomainOverviewHistory`,
+  `LoadDomainOverviewKeywords`, `LoadDomainOverviewPages`
 - Saved views: `ListSavedViews`, `CreateSavedView`, `DeleteSavedView`,
   `DeleteProjectSavedView`
 - Competitors: `ListCompetitors`, `AddCompetitor`, `RemoveCompetitor`,

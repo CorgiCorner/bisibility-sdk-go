@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.8.0 - 2026-08-13
+
+- Added typed Domain Overview estimate, report, history, ranked-keyword, and relevant-page methods.
+
 ## 0.7.0 - 2026-08-10
 
 - Updated `ConnectProvider` for the current provider-priority API and corrected the default User-Agent version.

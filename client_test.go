@@ -1438,8 +1438,8 @@ func TestUserAgentHeader(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.7.0" {
-				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.7.0")
+			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.8.0" {
+				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.8.0")
 			}
 			if got := r.Header.Get("X-Bisibility-Client"); got != "bisibility-sdk-go/"+Version {
 				t.Fatalf("X-Bisibility-Client = %q, want %q", got, "bisibility-sdk-go/"+Version)
