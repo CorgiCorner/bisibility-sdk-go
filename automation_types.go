@@ -209,6 +209,7 @@ type LocationSuggestion struct {
 	DisplayName   string       `json:"display_name"`
 	HL            string       `json:"hl"`
 	Kind          LocationKind `json:"kind"`
+	LanguageCode  string       `json:"language_code"`
 	LanguageLabel string       `json:"language_label"`
 	LocationKey   string       `json:"location_key"`
 	RegionCode    *string      `json:"region_code"`

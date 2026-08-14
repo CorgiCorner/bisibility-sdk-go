@@ -264,7 +264,10 @@ type Keyword struct {
 	ProjectID        string           `json:"project_id"`
 	Text             string           `json:"text"`
 	Country          string           `json:"country"`
+	LanguageCode     string           `json:"language_code"`
+	LanguageLabel    string           `json:"language_label"`
 	Location         string           `json:"location"`
+	LocationKey      string           `json:"location_key"`
 	Device           Device           `json:"device"`
 	Intent           *string          `json:"intent"`
 	Topic            *string          `json:"topic"`
@@ -287,6 +290,7 @@ type KeywordScheduleInput struct {
 }
 
 // CreateKeywordInput is one keyword item accepted by CreateKeywords and AddKeywords.
+// LocationKey accepts canonical country, region, or city keys, optionally qualified with @language.
 type CreateKeywordInput struct {
 	Keyword     string                `json:"keyword"`
 	City        string                `json:"city,omitempty"`
@@ -328,10 +332,12 @@ type KeywordMatchRequest struct {
 
 // KeywordMatchMarket identifies one market where a keyword is tracked.
 type KeywordMatchMarket struct {
-	CountryCode string `json:"country_code"`
-	Device      Device `json:"device"`
-	Location    string `json:"location"`
-	LocationKey string `json:"location_key"`
+	CountryCode   string `json:"country_code"`
+	Device        Device `json:"device"`
+	LanguageCode  string `json:"language_code"`
+	LanguageLabel string `json:"language_label"`
+	Location      string `json:"location"`
+	LocationKey   string `json:"location_key"`
 }
 
 // KeywordMatch keeps the normalized request text separate from the stored keyword text.

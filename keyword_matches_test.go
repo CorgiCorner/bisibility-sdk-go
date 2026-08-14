@@ -29,12 +29,12 @@ func TestMatchProjectKeywords(t *testing.T) {
 				{
 					"keyword_id": "kw_a00000000000000000000000", "matched_text": "headless cms", "text": " Headless CMS ", "latest_position": 3, "previous_position": 7,
 					"ranking_url": "https://example.com/headless-cms",
-					"market":      map[string]any{"location": "Austin", "location_key": "US/Texas/Austin", "country_code": "US", "device": "mobile"},
+					"market":      map[string]any{"location": "Malaga", "location_key": "ES/Andalusia/Malaga@en", "country_code": "ES", "language_code": "en", "language_label": "English", "device": "mobile"},
 				},
 				{
 					"keyword_id": "kw_b00000000000000000000000", "matched_text": "seo tool", "text": "SEO Tool", "latest_position": nil, "previous_position": 0,
 					"ranking_url": nil,
-					"market":      map[string]any{"location": "United States", "location_key": "US", "country_code": "US", "device": "desktop"},
+					"market":      map[string]any{"location": "United States", "location_key": "US", "country_code": "US", "language_code": "en", "language_label": "English", "device": "desktop"},
 				},
 			},
 			"meta": map[string]any{"truncated_texts": []string{"headless cms"}},
@@ -55,9 +55,11 @@ func TestMatchProjectKeywords(t *testing.T) {
 	assertEqual(t, *response.Data[0].LatestPosition, 3)
 	assertEqual(t, *response.Data[0].PreviousPosition, 7)
 	assertEqual(t, *response.Data[0].RankingURL, "https://example.com/headless-cms")
-	assertEqual(t, response.Data[0].Market.Location, "Austin")
-	assertEqual(t, response.Data[0].Market.LocationKey, "US/Texas/Austin")
-	assertEqual(t, response.Data[0].Market.CountryCode, "US")
+	assertEqual(t, response.Data[0].Market.Location, "Malaga")
+	assertEqual(t, response.Data[0].Market.LocationKey, "ES/Andalusia/Malaga@en")
+	assertEqual(t, response.Data[0].Market.CountryCode, "ES")
+	assertEqual(t, response.Data[0].Market.LanguageCode, "en")
+	assertEqual(t, response.Data[0].Market.LanguageLabel, "English")
 	assertEqual(t, response.Data[0].Market.Device, DeviceMobile)
 	if response.Data[1].LatestPosition != nil {
 		t.Fatalf("latest_position = %v, want nil", *response.Data[1].LatestPosition)
@@ -98,7 +100,7 @@ func TestKeywordMatchJSONTagsMatchContract(t *testing.T) {
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchResponse{}), []string{"data", "meta"})
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchMeta{}), []string{"truncated_texts"})
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatch{}), []string{"keyword_id", "latest_position", "market", "matched_text", "previous_position", "ranking_url", "text"})
-	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchMarket{}), []string{"country_code", "device", "location", "location_key"})
+	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchMarket{}), []string{"country_code", "device", "language_code", "language_label", "location", "location_key"})
 }
 
 func TestKeywordMatchRankingURLJSONRoundTrip(t *testing.T) {

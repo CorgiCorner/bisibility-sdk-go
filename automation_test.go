@@ -249,6 +249,7 @@ func TestAutomationEndpointMethods(t *testing.T) {
 					"display_name":   "Austin, Texas, United States",
 					"hl":             "en",
 					"kind":           "city",
+					"language_code":  "en",
 					"language_label": "English",
 					"location_key":   "US/Texas/Austin",
 					"region_code":    "TX",
@@ -260,6 +261,7 @@ func TestAutomationEndpointMethods(t *testing.T) {
 				response := got.(*LocationSuggestionsResponse)
 				assertEqual(t, response.Data[0].Kind, LocationKindCity)
 				assertEqual(t, response.Data[0].LocationKey, "US/Texas/Austin")
+				assertEqual(t, response.Data[0].LanguageCode, "en")
 			},
 		},
 		{

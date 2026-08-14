@@ -1438,8 +1438,8 @@ func TestUserAgentHeader(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.8.0" {
-				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.8.0")
+			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.9.0" {
+				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.9.0")
 			}
 			if got := r.Header.Get("X-Bisibility-Client"); got != "bisibility-sdk-go/"+Version {
 				t.Fatalf("X-Bisibility-Client = %q, want %q", got, "bisibility-sdk-go/"+Version)
@@ -1680,7 +1680,10 @@ func keywordFixture(id string) Keyword {
 		ProjectID:        "prj_a00000000000000000000000",
 		Text:             "rank tracker",
 		Country:          "United States",
+		LanguageCode:     "en",
+		LanguageLabel:    "English",
 		Location:         "United States",
+		LocationKey:      "US",
 		Device:           DeviceDesktop,
 		TargetURL:        &target,
 		RankingURL:       &target,
@@ -1711,7 +1714,10 @@ func keywordJSON(id string) map[string]any {
 		"id":                id,
 		"intent":            "commercial",
 		"latest_position":   4,
+		"language_code":     "en",
+		"language_label":    "English",
 		"location":          "United States",
+		"location_key":      "US",
 		"previous_position": 8,
 		"project_id":        "prj_a00000000000000000000000",
 		"ranking_url":       "https://example.com/page",

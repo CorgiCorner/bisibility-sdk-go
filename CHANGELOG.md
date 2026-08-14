@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.9.0 - 2026-08-14
+
+- Added language-qualified market fields to keyword, keyword-match, and location-search types.
+
 ## 0.8.0 - 2026-08-13
 
 - Added typed Domain Overview estimate, report, history, ranked-keyword, and relevant-page methods.
