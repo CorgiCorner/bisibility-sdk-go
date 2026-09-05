@@ -30,6 +30,7 @@ const (
 	PublicIDPrefixNotif   PublicIDPrefix = "ntf"
 	PublicIDPrefixPAT     PublicIDPrefix = "pat"
 	PublicIDPrefixProject PublicIDPrefix = "prj"
+	PublicIDPrefixRun     PublicIDPrefix = "rcr"
 	PublicIDPrefixSession PublicIDPrefix = "sid"
 	PublicIDPrefixSignal  PublicIDPrefix = "sig"
 	PublicIDPrefixSKW     PublicIDPrefix = "svkw"
@@ -45,8 +46,9 @@ var publicIDPrefixes = map[PublicIDPrefix]struct{}{
 	PublicIDPrefixInvite: {}, PublicIDPrefixJob: {}, PublicIDPrefixKey: {},
 	PublicIDPrefixKeyword: {}, PublicIDPrefixMember: {}, PublicIDPrefixMToken: {},
 	PublicIDPrefixNotif: {}, PublicIDPrefixPAT: {}, PublicIDPrefixProject: {},
-	PublicIDPrefixRule: {}, PublicIDPrefixSession: {}, PublicIDPrefixSignal: {},
-	PublicIDPrefixSKW: {}, PublicIDPrefixTag: {}, PublicIDPrefixUser: {},
+	PublicIDPrefixRule: {}, PublicIDPrefixRun: {}, PublicIDPrefixSession: {},
+	PublicIDPrefixSignal: {},
+	PublicIDPrefixSKW:    {}, PublicIDPrefixTag: {}, PublicIDPrefixUser: {},
 	PublicIDPrefixView: {}, PublicIDPrefixWebhook: {},
 }
 

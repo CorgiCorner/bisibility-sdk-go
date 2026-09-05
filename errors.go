@@ -93,6 +93,19 @@ func (e *NetworkError) bisibilityError() {
 	// This marker seals BisibilityError to SDK-defined error types.
 }
 
+// TimeoutError reports that a queued rank-check run did not finish before the deadline.
+type TimeoutError struct {
+	Message string
+}
+
+func (e *TimeoutError) Error() string {
+	return e.Message
+}
+
+func (e *TimeoutError) bisibilityError() {
+	// This marker seals BisibilityError to SDK-defined error types.
+}
+
 // ResponseError reports invalid successful API responses, such as malformed JSON.
 type ResponseError struct {
 	Body       string

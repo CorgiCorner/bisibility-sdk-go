@@ -26,7 +26,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.9.0"
+const Version = "0.10.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -475,7 +475,10 @@ func (c *Client) RankHistory(ctx context.Context, keywordID string, filters *Lis
 // RunRankCheck runs an immediate rank check for one keyword. When
 // input.Async is true the check is enqueued with ?async=true and the API
 // responds 202 with a RankCheck in status running.
-func (c *Client) RunRankCheck(ctx context.Context, keywordID string, input *RunRankCheckInput, options ...RequestOption) (*RankCheck, error) {
+// RunRankCheck requests a rank check. How it executes belongs to the deployment: where a background
+// worker owns execution the server answers 202 with the queued run, and where checks run inline it
+// answers 201 with the finished check. Input.Async is kept for compatibility and changes nothing.
+func (c *Client) RunRankCheck(ctx context.Context, keywordID string, input *RunRankCheckInput, options ...RequestOption) (*RunRankCheckResult, error) {
 	config := newRequestConfig(options...)
 	if input != nil && input.ProviderID != "" {
 		config.body = input
@@ -484,11 +487,93 @@ func (c *Client) RunRankCheck(ctx context.Context, keywordID string, input *RunR
 		config.query.Set("async", "true")
 	}
 
-	return requestJSON[RankCheck](c, ctx, http.MethodPost, keywordPathRoot+url.PathEscape(keywordID)+"/checks", config)
+	path := keywordPathRoot + url.PathEscape(keywordID) + "/checks"
+	body, statusCode, err := c.do(ctx, http.MethodPost, path, config)
+	if err != nil {
+		return nil, err
+	}
+	if len(body) == 0 {
+		return nil, nil
+	}
+	if statusCode == http.StatusAccepted {
+		var queued RankCheckRunQueued
+		if err := json.Unmarshal(body, &queued); err != nil {
+			return nil, &ResponseError{
+				Body:       string(body),
+				Cause:      err,
+				Method:     http.MethodPost,
+				StatusCode: statusCode,
+				URL:        mustBuildURL(c, path, config.query),
+			}
+		}
+		return &RunRankCheckResult{Queued: &queued}, nil
+	}
+
+	var check RankCheck
+	if err := json.Unmarshal(body, &check); err != nil {
+		return nil, &ResponseError{
+			Body:       string(body),
+			Cause:      err,
+			Method:     http.MethodPost,
+			StatusCode: statusCode,
+			URL:        mustBuildURL(c, path, config.query),
+		}
+	}
+	if err := validateResponsePublicIDs(&check); err != nil {
+		return nil, &ResponseError{
+			Body:       string(body),
+			Cause:      fmt.Errorf("public ID response contract: %w", err),
+			Method:     http.MethodPost,
+			StatusCode: statusCode,
+			URL:        mustBuildURL(c, path, config.query),
+		}
+	}
+	return &RunRankCheckResult{Check: &check}, nil
+}
+
+// RunRankCheckAndWait requests a rank check and returns the finished check. A queued run is followed
+// to its result through the RunID every rank check carries. It returns a TimeoutError when the
+// deadline passes first, and honours cancellation of ctx.
+func (c *Client) RunRankCheckAndWait(ctx context.Context, keywordID string, input *RunRankCheckInput, waitOptions *WaitForRankCheckOptions, options ...RequestOption) (*RankCheck, error) {
+	started, err := c.RunRankCheck(ctx, keywordID, input, options...)
+	if err != nil {
+		return nil, err
+	}
+	if started == nil {
+		return nil, nil
+	}
+	if !started.IsQueued() {
+		return started.Check, nil
+	}
+
+	timeout, interval := waitOptions.resolve()
+	runID := started.Queued.ID
+	deadline := time.Now().Add(timeout)
+	for {
+		history, err := c.ListRankChecks(ctx, keywordID, &ListRankChecksOptions{Limit: 50}, options...)
+		if err != nil {
+			return nil, err
+		}
+		if history != nil {
+			for index := range history.Data {
+				if history.Data[index].RunID == runID {
+					return &history.Data[index], nil
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			return nil, &TimeoutError{Message: "rank check run " + runID + " did not produce a check in time"}
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
+	}
 }
 
 // RunCheck is an operation-style alias for RunRankCheck.
-func (c *Client) RunCheck(ctx context.Context, keywordID string, input *RunRankCheckInput, options ...RequestOption) (*RankCheck, error) {
+func (c *Client) RunCheck(ctx context.Context, keywordID string, input *RunRankCheckInput, options ...RequestOption) (*RunRankCheckResult, error) {
 	return c.RunRankCheck(ctx, keywordID, input, options...)
 }
 

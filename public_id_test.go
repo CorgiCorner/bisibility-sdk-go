@@ -25,7 +25,7 @@ func strictID(prefix PublicIDPrefix) string {
 func TestPublicIDPrefixRegistry(t *testing.T) {
 	want := []string{
 		"al", "alr", "audit", "check", "cmp", "conn", "dwh", "ferry", "imp", "inv", "key", "kw",
-		"mbr", "ntf", "pat", "prj", "sid", "sig", "svkw", "tag", "usr", "viw", "we",
+		"mbr", "ntf", "pat", "prj", "rcr", "sid", "sig", "svkw", "tag", "usr", "viw", "we",
 	}
 	got := make([]string, 0, len(publicIDPrefixes))
 	for prefix := range publicIDPrefixes {

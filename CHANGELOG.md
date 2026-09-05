@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 - 2026-09-05
+
+- Model the queued rank-check contract: `RunRankCheck` returns a `RunRankCheckResult` carrying
+  either the completed check or the run queued with 202, and rank checks carry `RunID`.
+- Add `RunRankCheckAndWait`, which follows a queued run to its check and returns a `TimeoutError`
+  at the deadline.
+- Register the `rcr` rank-check-run public ID prefix.
 
 ## 0.9.0 - 2026-08-14
 

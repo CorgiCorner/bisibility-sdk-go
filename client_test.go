@@ -989,7 +989,7 @@ func TestProtectedMethods(t *testing.T) {
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RankCheck).Provider, "dataforseo")
+				assertEqual(t, got.(*RunRankCheckResult).Check.Provider, "dataforseo")
 			},
 		},
 		{
@@ -1005,28 +1005,30 @@ func TestProtectedMethods(t *testing.T) {
 			wantContentType: false,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RankCheck).ID, "check_a00000000000000000000000")
+				assertEqual(t, got.(*RunRankCheckResult).Check.ID, "check_a00000000000000000000000")
 			},
 		},
 		{
-			name: "run rank check async",
+			name: "run rank check queued",
 			call: func(ctx context.Context, c *Client) (any, error) {
 				return c.RunRankCheck(ctx, "kw_a00000000000000000000000", &RunRankCheckInput{Async: true})
 			},
 			method:          http.MethodPost,
 			path:            "/api/v1/keywords/kw_a00000000000000000000000/checks",
 			query:           "async=true",
-			response:        runningRankCheckJSON("check_b00000000000000000000000"),
+			response:        queuedRankCheckRunJSON("rcr_b00000000000000000000000"),
 			status:          http.StatusAccepted,
 			wantNoBody:      true,
 			wantContentType: false,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RankCheck).Status, string(RankCheckStatusRunning))
+				result := got.(*RunRankCheckResult)
+				assertEqual(t, result.IsQueued(), true)
+				assertEqual(t, result.Queued.Status, "queued")
 			},
 		},
 		{
-			name: "run rank check async with provider",
+			name: "run rank check queued with provider",
 			call: func(ctx context.Context, c *Client) (any, error) {
 				return c.RunRankCheck(ctx, "kw_a00000000000000000000000", &RunRankCheckInput{Async: true, ProviderID: "dataforseo"})
 			},
@@ -1034,12 +1036,12 @@ func TestProtectedMethods(t *testing.T) {
 			path:            "/api/v1/keywords/kw_a00000000000000000000000/checks",
 			query:           "async=true",
 			body:            `{"provider_id":"dataforseo"}`,
-			response:        runningRankCheckJSON("check_b00000000000000000000000"),
+			response:        queuedRankCheckRunJSON("rcr_b00000000000000000000000"),
 			status:          http.StatusAccepted,
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*RankCheck).ID, "check_b00000000000000000000000")
+				assertEqual(t, got.(*RunRankCheckResult).Queued.ID, "rcr_b00000000000000000000000")
 			},
 		},
 		{
@@ -1438,8 +1440,8 @@ func TestUserAgentHeader(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.9.0" {
-				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.9.0")
+			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.10.0" {
+				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.10.0")
 			}
 			if got := r.Header.Get("X-Bisibility-Client"); got != "bisibility-sdk-go/"+Version {
 				t.Fatalf("X-Bisibility-Client = %q, want %q", got, "bisibility-sdk-go/"+Version)
@@ -1746,8 +1748,88 @@ func createKeywordsResponseJSON() map[string]any {
 	}
 }
 
-// runningRankCheckJSON mirrors the app's 202 async rank check shape
-// (lib/api/rank-checks.ts + rankCheckResource).
+func TestRunRankCheckAndWait(t *testing.T) {
+	t.Parallel()
+
+	t.Run("follows a queued run to the check carrying its run id", func(t *testing.T) {
+		t.Parallel()
+		var calls int
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls++
+			switch calls {
+			case 1:
+				writeJSON(t, w, http.StatusAccepted, queuedRankCheckRunJSON("rcr_b00000000000000000000000"))
+			case 2:
+				writeJSON(t, w, http.StatusOK, map[string]any{"data": []any{}, "meta": map[string]any{}})
+			default:
+				check := runningRankCheckJSON("check_b00000000000000000000000")
+				check["run_id"] = "rcr_b00000000000000000000000"
+				check["status"] = "completed"
+				writeJSON(t, w, http.StatusOK, map[string]any{"data": []any{check}, "meta": map[string]any{}})
+			}
+		}))
+		defer server.Close()
+
+		client := newTestClient(t, server.URL+"/api/v1")
+		check, err := client.RunRankCheckAndWait(context.Background(), "kw_a00000000000000000000000", nil,
+			&WaitForRankCheckOptions{PollInterval: time.Millisecond})
+		if err != nil {
+			t.Fatalf("RunRankCheckAndWait returned %v", err)
+		}
+		assertEqual(t, check.RunID, "rcr_b00000000000000000000000")
+		assertEqual(t, calls, 3)
+	})
+
+	t.Run("gives up when the queued run never produces a check", func(t *testing.T) {
+		t.Parallel()
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				writeJSON(t, w, http.StatusAccepted, queuedRankCheckRunJSON("rcr_b00000000000000000000000"))
+				return
+			}
+			writeJSON(t, w, http.StatusOK, map[string]any{"data": []any{}, "meta": map[string]any{}})
+		}))
+		defer server.Close()
+
+		client := newTestClient(t, server.URL+"/api/v1")
+		_, err := client.RunRankCheckAndWait(context.Background(), "kw_a00000000000000000000000", nil,
+			&WaitForRankCheckOptions{Timeout: time.Nanosecond, PollInterval: time.Millisecond})
+		var timeout *TimeoutError
+		if !errors.As(err, &timeout) {
+			t.Fatalf("error = %v, want *TimeoutError", err)
+		}
+	})
+
+	t.Run("returns the finished check without polling when it runs inline", func(t *testing.T) {
+		t.Parallel()
+		var calls int
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls++
+			writeJSON(t, w, http.StatusCreated, runningRankCheckJSON("check_b00000000000000000000000"))
+		}))
+		defer server.Close()
+
+		client := newTestClient(t, server.URL+"/api/v1")
+		check, err := client.RunRankCheckAndWait(context.Background(), "kw_a00000000000000000000000", nil, nil)
+		if err != nil {
+			t.Fatalf("RunRankCheckAndWait returned %v", err)
+		}
+		assertEqual(t, check.ID, "check_b00000000000000000000000")
+		assertEqual(t, calls, 1)
+	})
+}
+
+// queuedRankCheckRunJSON mirrors the app's 202 queued-run shape
+// (lib/api/rank-check-request.ts).
+func queuedRankCheckRunJSON(id string) map[string]any {
+	return map[string]any{
+		"id":     id,
+		"status": "queued",
+	}
+}
+
+// runningRankCheckJSON mirrors the app's running rank check shape
+// (lib/api/resources.ts rankCheckResource).
 func runningRankCheckJSON(id string) map[string]any {
 	return map[string]any{
 		"attempts":          nil,

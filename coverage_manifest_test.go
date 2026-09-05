@@ -120,6 +120,7 @@ var clientMethodOperationIDs = map[string]string{
 	"RevokeTeamInvite":                "revokeTeamInvite",
 	"RunCheck":                        skipCoverageOperation,
 	"RunRankCheck":                    "runRankCheck",
+	"RunRankCheckAndWait":             skipCoverageOperation,
 	"SearchLocations":                 "searchLocations",
 	"SetKeywordTargetURL":             skipCoverageOperation,
 	"SetPrimaryProvider":              skipCoverageOperation,

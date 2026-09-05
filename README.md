@@ -8,7 +8,7 @@
 > [API reference](https://bisibility.com/docs/api/overview) ·
 > [Roadmap](https://bisibility.com/roadmap)
 >
-> **Status:** Published as v0.5.0.
+> **Status:** Published as v0.10.0.
 
 Idiomatic Go client for the Bisibility REST API.
 
@@ -70,7 +70,7 @@ func main() {
 		return
 	}
 
-	check, err := client.RunRankCheck(ctx, created.Results[0].Keyword.ID, nil)
+	check, err := client.RunRankCheckAndWait(ctx, created.Results[0].Keyword.ID, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,15 +134,32 @@ as shown in the quickstart, instead of embedding synthetic resource IDs.
   at 500ms and honors `Retry-After` up to 60 seconds. `WithMaxRetries(0)` disables retries, and
   context cancellation interrupts retry sleeps.
 
-### Async rank checks
+### Queued rank checks
 
-`RunRankCheck` waits for the check by default. Set `Async: true` to enqueue
-the check instead; the API responds `202 Accepted` with a rank check in
-status `running`, which you can poll with `GetRankCheckResult`:
+How a requested check executes belongs to the deployment, not to the call.
+Where a background worker owns execution the API answers `202 Accepted` with
+the queued run, and where checks run inline it answers `201 Created` with the
+finished check. `RunRankCheck` returns both cases:
 
 ```go
-check, err := client.RunRankCheck(ctx, keywordID, &bisibility.RunRankCheckInput{Async: true})
+started, err := client.RunRankCheck(ctx, keywordID, nil)
+if err == nil && started.IsQueued() {
+	fmt.Printf("queued as run %s\n", started.Queued.ID)
+}
 ```
+
+Every rank check carries the `RunID` of the run that produced it, which is how
+a queued run is followed to its result. `RunRankCheckAndWait` does that polling
+and returns the finished check, or a `*bisibility.TimeoutError` at the deadline:
+
+```go
+check, err := client.RunRankCheckAndWait(ctx, keywordID, nil, &bisibility.WaitForRankCheckOptions{
+	Timeout: 2 * time.Minute,
+})
+```
+
+`RunRankCheckInput.Async` is retained for compatibility and no longer changes
+what the server does.
 
 ### Public cost estimates
 
@@ -296,7 +313,8 @@ outcomes on their nested keyword and page modules. Decode `APIError.Problem.Erro
   `AddKeywords`, `GetKeyword`, `UpdateKeyword`, `SetKeywordTargetURL`,
   `DeleteKeyword`, `BulkUpdateKeywords`, `ResearchKeywords`, `GetKeywordMetrics`
 - Rank checks: `ListRankChecks`, `RankHistory`, `ExportRankHistory`,
-  `IterateRankHistory`, `RunRankCheck`, `RunCheck`, `GetRankCheckResult`
+  `IterateRankHistory`, `RunRankCheck`, `RunRankCheckAndWait`, `RunCheck`,
+  `GetRankCheckResult`
 - Alert rules: `ListAlertRules`, `CreateAlertRule`, `UpdateAlertRule`,
   `DeleteAlertRule`, `ListTriggeredAlerts`, `MuteTriggeredAlert`,
   `MarkProjectAlertsRead`

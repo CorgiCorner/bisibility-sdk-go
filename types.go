@@ -543,7 +543,44 @@ type RankCheck struct {
 	PreviousPosition *int               `json:"previous_position"`
 	Provider         string             `json:"provider"`
 	RankingURL       *string            `json:"ranking_url"`
-	Status           string             `json:"status"`
+	// RunID is the run that produced this check, empty for checks recorded before runs existed.
+	RunID  string `json:"run_id"`
+	Status string `json:"status"`
+}
+
+// RankCheckRunQueued is the run returned with 202 where a background worker owns execution.
+type RankCheckRunQueued struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
+// WaitForRankCheckOptions tunes how RunRankCheckAndWait follows a queued run.
+type WaitForRankCheckOptions struct {
+	Timeout      time.Duration
+	PollInterval time.Duration
+}
+
+func (o *WaitForRankCheckOptions) resolve() (time.Duration, time.Duration) {
+	timeout := 2 * time.Minute
+	interval := time.Second
+	if o != nil && o.Timeout > 0 {
+		timeout = o.Timeout
+	}
+	if o != nil && o.PollInterval > 0 {
+		interval = o.PollInterval
+	}
+	return timeout, interval
+}
+
+// RunRankCheckResult carries whichever answer the deployment produced. Exactly one field is set.
+type RunRankCheckResult struct {
+	Check  *RankCheck
+	Queued *RankCheckRunQueued
+}
+
+// Queued reports whether the deployment queued the run instead of running the check inline.
+func (r *RunRankCheckResult) IsQueued() bool {
+	return r != nil && r.Queued != nil
 }
 
 // ListRankChecksOptions filters rank check history.
