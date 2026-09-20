@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0 - 2026-09-20
+
+- Add `MaxCostCents` to `RunRankCheckInput`; the server refuses the check with `cost_limit_exceeded`
+  when its preflight estimate is higher.
+- Send `X-Bisibility-Source: sdk` on every request so the API can report SDK usage separately;
+  a `WithDefaultHeader("X-Bisibility-Source", ...)` value wins.
+
 ## 0.10.0 - 2026-09-05
 
 - Model the queued rank-check contract: `RunRankCheck` returns a `RunRankCheckResult` carrying

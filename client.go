@@ -26,7 +26,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.10.0"
+const Version = "0.11.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -847,6 +847,9 @@ func (c *Client) applyHeaders(req *http.Request, config requestConfig, hasBody b
 		req.Header.Set("User-Agent", userAgent)
 	}
 	req.Header.Set("X-Bisibility-Client", userAgent)
+	if req.Header.Get("X-Bisibility-Source") == "" {
+		req.Header.Set("X-Bisibility-Source", "sdk")
+	}
 	switch {
 	case config.migrationToken != "":
 		// Cloud-import writes authenticate with a migration token rather than

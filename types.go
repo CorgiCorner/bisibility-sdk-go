@@ -597,8 +597,10 @@ type ListRankChecksOptions struct {
 // responds 202 with a RankCheck in status running. Poll GetRankCheckResult
 // until the status becomes completed or failed.
 type RunRankCheckInput struct {
-	ProviderID string `json:"provider_id,omitempty"`
-	Async      bool   `json:"-"`
+	// MaxCostCents is a server-enforced ceiling for the preflight estimate of this check, in cents.
+	MaxCostCents int    `json:"max_cost_cents,omitempty"`
+	ProviderID   string `json:"provider_id,omitempty"`
+	Async        bool   `json:"-"`
 }
 
 // HealthResponse is returned by GetHealth.

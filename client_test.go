@@ -979,11 +979,11 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "run rank check",
 			call: func(ctx context.Context, c *Client) (any, error) {
-				return c.RunRankCheck(ctx, "kw_a00000000000000000000000", &RunRankCheckInput{ProviderID: "dataforseo"})
+				return c.RunRankCheck(ctx, "kw_a00000000000000000000000", &RunRankCheckInput{MaxCostCents: 5, ProviderID: "dataforseo"})
 			},
 			method:          http.MethodPost,
 			path:            "/api/v1/keywords/kw_a00000000000000000000000/checks",
-			body:            `{"provider_id":"dataforseo"}`,
+			body:            `{"max_cost_cents":5,"provider_id":"dataforseo"}`,
 			response:        check,
 			status:          http.StatusCreated,
 			wantContentType: true,
@@ -1440,11 +1440,14 @@ func TestUserAgentHeader(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.10.0" {
-				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.10.0")
+			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.11.0" {
+				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.11.0")
 			}
 			if got := r.Header.Get("X-Bisibility-Client"); got != "bisibility-sdk-go/"+Version {
 				t.Fatalf("X-Bisibility-Client = %q, want %q", got, "bisibility-sdk-go/"+Version)
+			}
+			if got := r.Header.Get("X-Bisibility-Source"); got != "sdk" {
+				t.Fatalf("X-Bisibility-Source = %q, want sdk", got)
 			}
 			writeJSON(t, w, http.StatusOK, healthFixture())
 		}))
@@ -1463,6 +1466,9 @@ func TestUserAgentHeader(t *testing.T) {
 			if got := r.Header.Get("User-Agent"); got != "custom-agent/1.0" {
 				t.Fatalf("User-Agent = %q, want custom-agent/1.0", got)
 			}
+			if got := r.Header.Get("X-Bisibility-Source"); got != "cli" {
+				t.Fatalf("X-Bisibility-Source = %q, want cli", got)
+			}
 			writeJSON(t, w, http.StatusOK, healthFixture())
 		}))
 		defer server.Close()
@@ -1470,6 +1476,7 @@ func TestUserAgentHeader(t *testing.T) {
 		client, err := NewClient(
 			WithBaseURL(server.URL+"/api/v1"),
 			WithDefaultHeader("User-Agent", "custom-agent/1.0"),
+			WithDefaultHeader("X-Bisibility-Source", "cli"),
 		)
 		if err != nil {
 			t.Fatalf("NewClient returned error: %v", err)

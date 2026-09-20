@@ -8,7 +8,7 @@
 > [API reference](https://bisibility.com/docs/api/overview) ·
 > [Roadmap](https://bisibility.com/roadmap)
 >
-> **Status:** Published as v0.10.0.
+> **Status:** Published as v0.11.0.
 
 Idiomatic Go client for the Bisibility REST API.
 
@@ -126,6 +126,8 @@ as shown in the quickstart, instead of embedding synthetic resource IDs.
   `User-Agent` (`bisibility.Version`). Override the user agent with
   `bisibility.WithDefaultHeader("User-Agent", "...")` or per request with
   `bisibility.WithRequestHeader`.
+- Every request also declares its origin with `X-Bisibility-Source: sdk` for usage reporting;
+  `WithDefaultHeader("X-Bisibility-Source", "cli")` overrides it.
 - The default HTTP client uses a 30 second timeout. Supply your own client
   with `bisibility.WithHTTPClient(&http.Client{...})` to change the timeout,
   transport, or proxy behavior.
