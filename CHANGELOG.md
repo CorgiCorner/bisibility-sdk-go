@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.12.0 - 2026-09-27
+
+- Added saved research report reads and separate own-key and credit provider budget methods.
+
+- **Breaking for typed consumers:** `AnalyzeBacklinks` returns a `BacklinksResponse` whose
+  `Data` is a discriminated union with `Estimate` and `Snapshot` pointers. An `EstimateOnly`
+  request decodes into the new cost-only `BacklinksEstimate`, and `BacklinksSnapshot` no longer
+  carries `Estimate` or `EstimatedCostCents`. `LoadMoreBacklinkRows` still returns a snapshot.
+- **Breaking for typed consumers:** `ResearchKeywords` returns a `KeywordResearchResponse` that is
+  now a discriminated union with `Estimate` and `Result` pointers. An `EstimateOnly` request
+  decodes into the new cost-only `KeywordResearchEstimate`, and the previous response shape is the
+  new `KeywordResearchResult` without its `Estimate` field.
+- Add `SerpDepth` to `ProjectDefaultsPatch`. Omitting it keeps the stored depth, and `10`, `20`,
+  `50`, and `100` are accepted (`SerpDepths`); any other value is rejected locally.
+- `ConnectProvider` sends `Priority` with the connect request instead of a follow-up PATCH, so a
+  single call connects and orders the provider. `ProviderPrioritySyncError` is deprecated and is
+  no longer returned.
+- Document Plausible credentials (`Credentials.Login` is the site domain and defaults to the
+  project domain; `Credentials.APIKey` is the Stats API token) and the `"Connected."` and
+  `"Connected · <detail>."` provider test messages.
+- Document the backlinks and provider methods in the README, including that a sitemap monitor ID
+  is the project ID.
+
 ## 0.11.0 - 2026-09-20
 
 - Add `MaxCostCents` to `RunRankCheckInput`; the server refuses the check with `cost_limit_exceeded`

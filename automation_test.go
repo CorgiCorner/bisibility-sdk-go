@@ -97,18 +97,27 @@ func TestAutomationEndpointMethods(t *testing.T) {
 			},
 			want: func(t *testing.T, got any) {
 				response := got.(*KeywordResearchResponse)
-				assertEqual(t, response.Cached, false)
-				assertEqual(t, response.Rows[0].AlreadyTracked, true)
-				assertEqual(t, response.Rows[0].Source, KeywordResearchSourceRelated)
-				assertEqual(t, *response.Rows[0].Intent, KeywordIntentCommercial)
-				assertEqual(t, *response.Rows[0].CPCCents, 189)
-				assertEqual(t, response.Sources[0].Cached, false)
-				assertEqual(t, response.Sources[0].Status, KeywordResearchSourceStatusOK)
-				assertEqual(t, response.Sources[1].Status, KeywordResearchSourceStatusFailed)
-				assertEqual(t, *response.Sources[1].Reason, KeywordResearchSourceReasonBudgetExhausted)
-				assertEqual(t, response.Sources[2].Status, KeywordResearchSourceStatusSkipped)
-				assertEqual(t, *response.Sources[2].Reason, KeywordResearchSourceReasonPreviousSourceFailed)
-				assertEqual(t, response.Connections[0].Provider, ProviderIDDataForSEO)
+				if response.Estimate != nil {
+					t.Fatal("a paid research response decoded as an estimate")
+				}
+				if response.Result == nil {
+					t.Fatal("research result = nil, want a decoded result")
+				}
+				result := response.Result
+				assertEqual(t, result.Cached, false)
+				assertEqual(t, result.TotalCount, 1)
+				assertEqual(t, result.FetchedAt.UTC().Format("2006-01-02T15:04:05Z"), "2026-07-22T10:00:00Z")
+				assertEqual(t, result.Rows[0].AlreadyTracked, true)
+				assertEqual(t, result.Rows[0].Source, KeywordResearchSourceRelated)
+				assertEqual(t, *result.Rows[0].Intent, KeywordIntentCommercial)
+				assertEqual(t, *result.Rows[0].CPCCents, 189)
+				assertEqual(t, result.Sources[0].Cached, false)
+				assertEqual(t, result.Sources[0].Status, KeywordResearchSourceStatusOK)
+				assertEqual(t, result.Sources[1].Status, KeywordResearchSourceStatusFailed)
+				assertEqual(t, *result.Sources[1].Reason, KeywordResearchSourceReasonBudgetExhausted)
+				assertEqual(t, result.Sources[2].Status, KeywordResearchSourceStatusSkipped)
+				assertEqual(t, *result.Sources[2].Reason, KeywordResearchSourceReasonPreviousSourceFailed)
+				assertEqual(t, result.Connections[0].Provider, ProviderIDDataForSEO)
 			},
 		},
 		{
@@ -129,29 +138,31 @@ func TestAutomationEndpointMethods(t *testing.T) {
 				"connections": []any{map[string]any{"id": "conn_a00000000000000000000000", "label": "DataForSEO", "provider": "dataforseo"}},
 				"cost_cents":  3.0,
 				"estimate":    true,
-				"fetched_at":  "2026-07-22T10:00:00Z",
 				"provider":    "DataForSEO",
-				"rows":        []any{},
 				"sources": []any{
-					map[string]any{
-						"cached": true, "cost_cents": 0, "returned": 0, "source": "related", "status": "ok",
-					},
-					map[string]any{
-						"cached": false, "cost_cents": 1.0, "returned": 0, "source": "suggestion", "status": "ok",
-					},
-					map[string]any{
-						"cached": false, "cost_cents": 2.0, "returned": 0, "source": "idea", "status": "ok",
-					},
+					map[string]any{"cached": true, "cost_cents": 0, "source": "related"},
+					map[string]any{"cached": false, "cost_cents": 1.0, "source": "suggestion"},
+					map[string]any{"cached": false, "cost_cents": 2.0, "source": "idea"},
 				},
-				"total_count": 0,
 			},
 			want: func(t *testing.T, got any) {
 				response := got.(*KeywordResearchResponse)
-				assertEqual(t, *response.Estimate, true)
-				assertEqual(t, response.CostCents, 3.0)
-				assertEqual(t, len(response.Rows), 0)
-				assertEqual(t, response.Sources[0].Cached, true)
-				assertEqual(t, response.Sources[1].Status, KeywordResearchSourceStatusOK)
+				if response.Result != nil {
+					t.Fatal("an estimate-only response decoded as a paid result")
+				}
+				if response.Estimate == nil {
+					t.Fatal("research estimate = nil, want a decoded estimate")
+				}
+				estimate := response.Estimate
+				assertEqual(t, estimate.Estimate, true)
+				assertEqual(t, estimate.Cached, false)
+				assertEqual(t, estimate.CostCents, 3.0)
+				assertEqual(t, estimate.Provider, "DataForSEO")
+				assertEqual(t, len(estimate.Sources), 3)
+				assertEqual(t, estimate.Sources[0].Source, KeywordResearchSourceRelated)
+				assertEqual(t, estimate.Sources[0].Cached, true)
+				assertEqual(t, estimate.Sources[2].CostCents, 2.0)
+				assertEqual(t, estimate.Connections[0].Provider, ProviderIDDataForSEO)
 			},
 		},
 		{

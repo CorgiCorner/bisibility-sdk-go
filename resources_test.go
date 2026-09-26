@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -346,28 +345,36 @@ func TestNewEndpointMethods(t *testing.T) {
 			method:          http.MethodPost,
 			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/serpapi/test",
 			body:            `{"credentials":{"api_key":"api_key"}}`,
-			response:        ProviderTestResult{Balance: &cost, Message: "Ready", OK: true},
+			response:        ProviderTestResult{Balance: &cost, Message: "Connected.", OK: true},
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*ProviderTestResult).OK, true)
+				result := got.(*ProviderTestResult)
+				assertEqual(t, result.OK, true)
+				assertEqual(t, result.Message, "Connected.")
 			},
 		},
 		{
-			name: "test provider connection with endpoint",
+			name: "test provider connection with plausible credentials",
 			call: func(ctx context.Context, c *Client) (any, error) {
 				return c.TestProviderConnection(ctx, "prj_a00000000000000000000000", ProviderIDPlausible, TestProviderConnectionInput{
-					Credentials: &ProviderCredentialsInput{APIKey: "api_key", Endpoint: "https://plausible.example"},
+					Credentials: &ProviderCredentialsInput{
+						APIKey:   "api_key",
+						Endpoint: "https://plausible.example",
+						Login:    "example.com",
+					},
 				})
 			},
 			method:          http.MethodPost,
 			path:            "/api/v1/projects/prj_a00000000000000000000000/providers/plausible/test",
-			body:            `{"credentials":{"api_key":"api_key","endpoint":"https://plausible.example"}}`,
-			response:        ProviderTestResult{Message: "Ready", OK: true},
+			body:            `{"credentials":{"api_key":"api_key","endpoint":"https://plausible.example","login":"example.com"}}`,
+			response:        ProviderTestResult{Message: "Connected · example.com.", OK: true},
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
 				t.Helper()
-				assertEqual(t, got.(*ProviderTestResult).OK, true)
+				result := got.(*ProviderTestResult)
+				assertEqual(t, result.OK, true)
+				assertEqual(t, result.Message, "Connected · example.com.")
 			},
 		},
 		{
@@ -868,7 +875,7 @@ func TestNewEndpointMethods(t *testing.T) {
 	}
 }
 
-func TestConnectProviderSynchronizesPriorityAfterConnect(t *testing.T) {
+func TestConnectProviderSendsPriorityWithConnect(t *testing.T) {
 	t.Parallel()
 
 	projectID := "prj_a00000000000000000000000"
@@ -880,8 +887,7 @@ func TestConnectProviderSynchronizesPriorityAfterConnect(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        ConnectProviderInput
-		wantPatch    bool
-		wantPriority int
+		wantPriority any
 	}{
 		{
 			name: "primary wins over an explicit priority",
@@ -891,22 +897,20 @@ func TestConnectProviderSynchronizesPriorityAfterConnect(t *testing.T) {
 				Priority: &priority,
 				Secret:   "secret",
 			},
-			wantPatch:    true,
-			wantPriority: 0,
+			wantPriority: 0.0,
 		},
 		{
-			name: "explicit priority is synchronized when primary is false",
+			name: "explicit priority is sent when primary is false",
 			input: ConnectProviderInput{
 				Login:    "login",
 				Primary:  &notPrimary,
 				Priority: &priority,
 				Secret:   "secret",
 			},
-			wantPatch:    true,
-			wantPriority: priority,
+			wantPriority: float64(priority),
 		},
 		{
-			name: "primary false alone does not require a priority patch",
+			name: "primary false alone leaves priority to the server",
 			input: ConnectProviderInput{
 				Login:   "login",
 				Primary: &notPrimary,
@@ -923,38 +927,35 @@ func TestConnectProviderSynchronizesPriorityAfterConnect(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				requests++
 				captured := captureRequest(t, r)
-				switch requests {
-				case 1:
-					assertEqual(t, captured.Method, http.MethodPost)
-					assertEqual(t, captured.Path, "/api/v1/projects/"+projectID+"/providers/dataforseo/connect")
-					assertEqual(t, captured.Header.Get("Idempotency-Key"), "connect-idempotency-key")
-					assertEqual(t, captured.Header.Get("X-Request-Trace"), "connect-priority-sync")
-					var postBody map[string]any
-					if err := json.Unmarshal([]byte(captured.Body), &postBody); err != nil {
-						t.Fatalf("decode connect body: %v", err)
-					}
-					if _, ok := postBody["primary"]; ok {
-						t.Fatal("connect POST included primary")
-					}
-					if _, ok := postBody["priority"]; ok {
-						t.Fatal("connect POST included priority")
-					}
-					writeJSON(t, w, http.StatusCreated, providerConnectionJSON(providerID))
-				case 2:
-					if !tt.wantPatch {
-						t.Fatal("primary false alone made an unexpected priority patch")
-					}
-					assertEqual(t, captured.Method, http.MethodPatch)
-					assertEqual(t, captured.Path, "/api/v1/projects/"+projectID+"/providers/dataforseo")
-					assertEqual(t, captured.Header.Get("Idempotency-Key"), "")
-					assertEqual(t, captured.Header.Get("X-Request-Trace"), "connect-priority-sync")
-					assertJSONEqual(t, captured.Body, `{"priority":`+strconv.Itoa(tt.wantPriority)+`}`)
-					response := providerConnectionJSON(providerID)
-					response["priority"] = tt.wantPriority
-					writeJSON(t, w, http.StatusOK, response)
-				default:
+				if requests > 1 {
 					t.Fatalf("unexpected request %d", requests)
 				}
+				assertEqual(t, captured.Method, http.MethodPost)
+				assertEqual(t, captured.Path, "/api/v1/projects/"+projectID+"/providers/dataforseo/connect")
+				assertEqual(t, captured.Header.Get("Idempotency-Key"), "connect-idempotency-key")
+				assertEqual(t, captured.Header.Get("X-Request-Trace"), "connect-priority")
+				var postBody map[string]any
+				if err := json.Unmarshal([]byte(captured.Body), &postBody); err != nil {
+					t.Fatalf("decode connect body: %v", err)
+				}
+				if _, ok := postBody["primary"]; ok {
+					t.Fatal("connect POST included primary")
+				}
+				got, ok := postBody["priority"]
+				if tt.wantPriority == nil {
+					if ok {
+						t.Fatal("connect POST included priority without an explicit request")
+					}
+				} else if !ok {
+					t.Fatal("connect POST omitted the requested priority")
+				} else {
+					assertEqual(t, got, tt.wantPriority)
+				}
+				response := providerConnectionJSON(providerID)
+				if tt.wantPriority != nil {
+					response["priority"] = tt.wantPriority
+				}
+				writeJSON(t, w, http.StatusCreated, response)
 			}))
 			defer server.Close()
 
@@ -972,7 +973,7 @@ func TestConnectProviderSynchronizesPriorityAfterConnect(t *testing.T) {
 				providerID,
 				tt.input,
 				WithIdempotencyKey("connect-idempotency-key"),
-				WithRequestHeader("X-Request-Trace", "connect-priority-sync"),
+				WithRequestHeader("X-Request-Trace", "connect-priority"),
 			)
 			if err != nil {
 				t.Fatalf("ConnectProvider returned error: %v", err)
@@ -981,13 +982,12 @@ func TestConnectProviderSynchronizesPriorityAfterConnect(t *testing.T) {
 				t.Fatal("ConnectProvider returned nil connection")
 			}
 			assertEqual(t, connection.Provider, providerID)
-			assertEqual(t, connection.Priority, tt.wantPriority)
-			assertEqual(t, requests, 1+btoi(tt.wantPatch))
+			assertEqual(t, requests, 1)
 		})
 	}
 }
 
-func TestConnectProviderDoesNotSynchronizePriorityWhenConnectFails(t *testing.T) {
+func TestConnectProviderReturnsTheConnectFailure(t *testing.T) {
 	t.Parallel()
 
 	projectID := "prj_a00000000000000000000000"
@@ -1020,58 +1020,6 @@ func TestConnectProviderDoesNotSynchronizePriorityWhenConnectFails(t *testing.T)
 		t.Fatalf("ConnectProvider returned ProviderPrioritySyncError for the connect POST failure: %v", err)
 	}
 	assertEqual(t, requests, 1)
-}
-
-func TestConnectProviderReturnsConnectionWhenPrioritySynchronizationFails(t *testing.T) {
-	t.Parallel()
-
-	projectID := "prj_a00000000000000000000000"
-	priority := 3
-	requests := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests++
-		captured := captureRequest(t, r)
-		if requests == 1 {
-			assertEqual(t, captured.Method, http.MethodPost)
-			assertEqual(t, captured.Header.Get("Idempotency-Key"), "connect-idempotency-key")
-			writeJSON(t, w, http.StatusCreated, providerConnectionJSON(ProviderIDDataForSEO))
-			return
-		}
-		assertEqual(t, captured.Method, http.MethodPatch)
-		assertEqual(t, captured.Header.Get("Idempotency-Key"), "")
-		assertJSONEqual(t, captured.Body, `{"priority":3}`)
-		http.Error(w, "priority synchronization failed", http.StatusServiceUnavailable)
-	}))
-	defer server.Close()
-
-	client := newTestClient(t, server.URL+"/api/v1")
-	connection, err := client.ConnectProvider(
-		context.Background(),
-		projectID,
-		ProviderIDDataForSEO,
-		ConnectProviderInput{Priority: &priority},
-		WithIdempotencyKey("connect-idempotency-key"),
-	)
-	if connection == nil {
-		t.Fatal("ConnectProvider returned nil connection after the successful connect")
-	}
-	assertEqual(t, connection.ID, "conn_a00000000000000000000000")
-	assertEqual(t, requests, 2)
-
-	var syncErr *ProviderPrioritySyncError
-	if !errors.As(err, &syncErr) {
-		t.Fatalf("ConnectProvider error = %T, want ProviderPrioritySyncError", err)
-	}
-	if errors.Unwrap(syncErr) == nil {
-		t.Fatal("ProviderPrioritySyncError does not unwrap the PATCH failure")
-	}
-}
-
-func btoi(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
 }
 
 func runResourceMethodTestCase(t *testing.T, tt resourceMethodTestCase) {

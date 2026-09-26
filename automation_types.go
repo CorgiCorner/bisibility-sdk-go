@@ -1,6 +1,9 @@
 package bisibility
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // ListRankedKeywordSuggestionsOptions controls one offset-paginated ranked keyword lookup.
 type ListRankedKeywordSuggestionsOptions struct {
@@ -142,17 +145,69 @@ type KeywordResearchSourceSummary struct {
 // KeywordResearchConnection is an eligible project-owned DataForSEO connection.
 type KeywordResearchConnection = RankedKeywordConnection
 
-// KeywordResearchResponse is one cached, paid, or estimated single-seed research result.
-type KeywordResearchResponse struct {
+// KeywordResearchEstimateSource is one planned source and its estimated cost.
+// A dry run reports no status, returned count, or reason for a source.
+type KeywordResearchEstimateSource struct {
+	Cached    bool                  `json:"cached"`
+	CostCents float64               `json:"cost_cents"`
+	Source    KeywordResearchSource `json:"source"`
+}
+
+// KeywordResearchEstimate is the free, cost-only dry run returned for EstimateOnly requests.
+// It never carries rows, a fetch time, or source statuses, so an estimate can never be
+// mistaken for an empty research result.
+type KeywordResearchEstimate struct {
+	Cached      bool                            `json:"cached"`
+	Connections []KeywordResearchConnection     `json:"connections"`
+	CostCents   float64                         `json:"cost_cents"`
+	Estimate    bool                            `json:"estimate"`
+	Provider    string                          `json:"provider"`
+	Sources     []KeywordResearchEstimateSource `json:"sources"`
+}
+
+// KeywordResearchResult is one cached or paid single-seed research result.
+type KeywordResearchResult struct {
 	Cached      bool                           `json:"cached"`
 	Connections []KeywordResearchConnection    `json:"connections"`
 	CostCents   float64                        `json:"cost_cents"`
-	Estimate    *bool                          `json:"estimate,omitempty"`
 	FetchedAt   time.Time                      `json:"fetched_at"`
 	Provider    string                         `json:"provider"`
 	Rows        []KeywordResearchRow           `json:"rows"`
 	Sources     []KeywordResearchSourceSummary `json:"sources"`
 	TotalCount  int                            `json:"total_count"`
+}
+
+// KeywordResearchResponse is the discriminated estimate/result response returned by
+// ResearchKeywords. Exactly one pointer is set after successful decoding.
+type KeywordResearchResponse struct {
+	Estimate *KeywordResearchEstimate
+	Result   *KeywordResearchResult
+}
+
+// UnmarshalJSON decodes a ResearchKeywords response using estimate=true as its discriminator.
+func (response *KeywordResearchResponse) UnmarshalJSON(data []byte) error {
+	var discriminator struct {
+		Estimate bool `json:"estimate"`
+	}
+	if err := json.Unmarshal(data, &discriminator); err != nil {
+		return err
+	}
+	if discriminator.Estimate {
+		var estimate KeywordResearchEstimate
+		if err := json.Unmarshal(data, &estimate); err != nil {
+			return err
+		}
+		response.Estimate = &estimate
+		response.Result = nil
+		return nil
+	}
+	var result KeywordResearchResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return err
+	}
+	response.Estimate = nil
+	response.Result = &result
+	return nil
 }
 
 // GetKeywordMetricsInput requests or estimates provider metrics for up to 700 keywords.

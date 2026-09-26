@@ -20,7 +20,9 @@ func (c *Client) ListRankedKeywordSuggestions(ctx context.Context, projectID str
 }
 
 // ResearchKeywords researches related keywords, suggestions, and ideas from one seed.
-// The endpoint requires an API key with write scope because cache misses can spend provider budget.
+// EstimateOnly requests resolve to KeywordResearchResponse.Estimate, every other request to
+// KeywordResearchResponse.Result. The endpoint requires an API key with write scope because
+// cache misses can spend provider budget.
 func (c *Client) ResearchKeywords(ctx context.Context, projectID string, input ResearchKeywordsOptions, options ...RequestOption) (*KeywordResearchResponse, error) {
 	config := newRequestConfig(options...)
 	addQuery(config.query, "connection_id", input.ConnectionID)

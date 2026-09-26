@@ -11,6 +11,11 @@ import (
 const skipCoverageOperation = ""
 
 var clientMethodOperationIDs = map[string]string{
+	"ListStoredResearchReports": "listStoredResearchReports",
+	"GetStoredResearchReport":   "getStoredResearchReport",
+	"ListProviderBudgets":       "listProviderBudgets",
+	"UpdateProviderBudgets":     "updateProviderBudgets",
+
 	"AddCompetitor":                   "addCompetitor",
 	"AddKeywords":                     "addKeywords",
 	"AnalyzeBacklinks":                "analyzeBacklinks",

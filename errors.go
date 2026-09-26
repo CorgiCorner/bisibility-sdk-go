@@ -127,6 +127,9 @@ func (e *ResponseError) bisibilityError() {
 }
 
 // ProviderPrioritySyncError reports a priority PATCH failure after a provider connect succeeds.
+//
+// Deprecated: ConnectProvider sends priority with the connect request and no longer issues a
+// follow-up PATCH, so this error is never returned. It is retained for compatibility.
 type ProviderPrioritySyncError struct {
 	Cause error
 }

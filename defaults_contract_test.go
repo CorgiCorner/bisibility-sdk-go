@@ -35,6 +35,7 @@ func TestProjectDefaultsJSONTagsMatchContract(t *testing.T) {
 		"frequency",
 		"jitter_minutes",
 		"location_key",
+		"serp_depth",
 		"serp_stop_on_match",
 		"timezone",
 	})

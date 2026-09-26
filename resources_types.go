@@ -346,6 +346,9 @@ type Provider struct {
 }
 
 // ProviderCredentialsInput contains provider credentials for connect and test requests.
+// Field meanings are provider specific. For Plausible, Login is the site domain configured
+// in Plausible (its site_id, such as example.com) and defaults to the project domain when
+// omitted, and APIKey is the Stats API token.
 type ProviderCredentialsInput struct {
 	APIKey   string `json:"api_key,omitempty"`
 	Endpoint string `json:"endpoint,omitempty"`
@@ -354,6 +357,9 @@ type ProviderCredentialsInput struct {
 }
 
 // ConnectProviderInput connects or updates provider credentials for a project.
+// Priority is an optional fallback position from 0 to 1000; 0 promotes the provider and
+// renumbers the chain. Omitting it keeps a reconnected provider's place and appends a new
+// connection. Primary is SDK sugar for Priority 0.
 type ConnectProviderInput struct {
 	CostPerCheck *float64                  `json:"cost_per_check,omitempty"`
 	Credentials  *ProviderCredentialsInput `json:"credentials,omitempty"`
@@ -395,7 +401,9 @@ type ProviderConnection struct {
 	UpdatedAt         *time.Time     `json:"updated_at,omitempty"`
 }
 
-// ProviderTestResult is returned by TestProviderConnection.
+// ProviderTestResult is returned by TestProviderConnection. A successful test reports
+// Message "Connected." for SERP providers and "Connected · <detail>." for analytics
+// providers, where the detail names the verified property or site.
 type ProviderTestResult struct {
 	Balance *float64 `json:"balance,omitempty"`
 	Message string   `json:"message"`

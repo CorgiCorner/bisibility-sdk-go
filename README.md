@@ -8,7 +8,7 @@
 > [API reference](https://bisibility.com/docs/api/overview) ·
 > [Roadmap](https://bisibility.com/roadmap)
 >
-> **Status:** Published as v0.11.0.
+> **Status:** Published as v0.12.0.
 
 Idiomatic Go client for the Bisibility REST API.
 
@@ -211,17 +211,42 @@ responses and list filters. Payloads must serialize to 8KB or less.
 `ResearchKeywords` runs one paid, cached DataForSEO Labs lookup for a single seed. Choose a
 research mode and a result limit of 100, 300, or 500 before the request. There is no offset
 pagination. `IncludeClickstream` requests clickstream-refined metrics and increases provider cost.
-Use `EstimateOnly` for a free, cache-aware dry run and `MaxCostCents` for a best-effort request
-guard. Partial auto-mode responses identify each source as `ok`, `failed`, or `skipped` with an
-optional machine-readable reason. This method requires an API key with write scope.
+`MaxCostCents` is a best-effort request guard. Partial auto-mode responses identify each source as
+`ok`, `failed`, or `skipped` with an optional machine-readable reason. This method requires an API
+key with write scope.
+
+`KeywordResearchResponse` is a discriminated union: exactly one of `Estimate` and `Result` is set.
+`EstimateOnly` returns a free, cache-aware `KeywordResearchEstimate` that carries per-source costs
+only - never rows, a fetch time, or source statuses - so an estimate can never be mistaken for an
+empty result. Every other request returns a `KeywordResearchResult` with the researched rows.
 
 ```go
+estimate, err := client.ResearchKeywords(ctx, projectID, bisibility.ResearchKeywordsOptions{
+	Seed:         "rank tracker",
+	Mode:         bisibility.KeywordResearchModeAuto,
+	ResultLimit:  100,
+	EstimateOnly: true,
+})
+if err != nil {
+	log.Fatal(err)
+}
+if estimate.Estimate == nil {
+	log.Fatal("expected an estimate")
+}
+fmt.Printf("estimated %.2f cents across %d sources\n", estimate.Estimate.CostCents, len(estimate.Estimate.Sources))
+
 research, err := client.ResearchKeywords(ctx, projectID, bisibility.ResearchKeywordsOptions{
 	Seed:         "rank tracker",
 	Mode:         bisibility.KeywordResearchModeAuto,
 	ResultLimit:  100,
 	MaxCostCents: 5,
 })
+if err != nil {
+	log.Fatal(err)
+}
+if research.Result != nil {
+	fmt.Printf("%d keywords charged %.2f cents\n", research.Result.TotalCount, research.Result.CostCents)
+}
 ```
 
 `GetKeywordMetrics` hydrates nullable volume, CPC, competition, difficulty, intent, and monthly
@@ -303,6 +328,105 @@ operations as RFC problem responses; partial analysis reports keep typed success
 outcomes on their nested keyword and page modules. Decode `APIError.Problem.Errors` into
 `DomainOverviewProblemErrors` when callers need the failure reason, charged cost, or reset time.
 
+A full domain overview costs roughly 6 cents at current DataForSEO rates; estimate first, and call
+`GetProviderRates` or `GetCostEstimate` for the authoritative numbers.
+
+### Backlinks
+
+`AnalyzeBacklinks` returns either a free, cache-aware estimate or a paid backlink snapshot.
+`BacklinksResponse.Data` is a discriminated union: exactly one of `Estimate` and `Snapshot` is set.
+`EstimateOnly` returns a cost-only `BacklinksEstimate` (`Estimate`, `EstimatedCostCents`,
+`CostCents`, `Cached`, `CachedUntil`, `Provider`, and the normalized target) that never carries
+`Summary`, `History`, `Rows`, or `FetchedAt`, so an estimate can never be mistaken for an empty
+backlink profile. `CachedUntil` is nil when no unexpired snapshot exists. `MaxCostCents` is a
+best-effort guard applied to the pre-estimate. Both methods require write scope because a cache
+miss can spend provider budget.
+
+```go
+estimate, err := client.AnalyzeBacklinks(ctx, projectID, bisibility.AnalyzeBacklinksOptions{
+	Target:       "example.com",
+	TargetScope:  bisibility.BacklinkTargetScopeSite,
+	EstimateOnly: true,
+})
+if err != nil {
+	log.Fatal(err)
+}
+if estimate.Data.Estimate == nil {
+	log.Fatal("expected an estimate")
+}
+fmt.Printf("estimated %.2f cents\n", estimate.Data.Estimate.EstimatedCostCents)
+
+analysis, err := client.AnalyzeBacklinks(ctx, projectID, bisibility.AnalyzeBacklinksOptions{
+	Target:       "example.com",
+	TargetScope:  bisibility.BacklinkTargetScopeSite,
+	ResultLimit:  100,
+	MaxCostCents: 10,
+})
+if err != nil {
+	log.Fatal(err)
+}
+if analysis.Data.Snapshot != nil {
+	snapshot := analysis.Data.Snapshot
+	fmt.Printf("%d of %d rows charged %.2f cents\n",
+		snapshot.FetchedRowCount, snapshot.TotalRowsAvailable, snapshot.CostCents)
+}
+```
+
+A 100-row site analysis costs roughly 7 cents at current DataForSEO rates; call
+`GetProviderRates` or `GetCostEstimate` for the authoritative numbers. `LoadMoreBacklinkRows`
+appends paid rows to an unexpired snapshot and always returns a `BacklinksSnapshotResponse`,
+never an estimate.
+
+```go
+more, err := client.LoadMoreBacklinkRows(ctx, projectID, bisibility.LoadMoreBacklinkRowsOptions{
+	Target:      "example.com",
+	TargetScope: bisibility.BacklinkTargetScopeSite,
+	Limit:       100,
+})
+```
+
+### Providers
+
+`ConnectProvider` stores credentials and places the connection in the project fallback chain.
+`Priority` is optional and runs from 0 to 1000: `0` promotes the provider and renumbers the chain,
+any other value reorders it, and omitting it keeps a reconnected provider's place and appends a new
+connection. `Primary` is SDK sugar for `Priority` 0 and wins when both are set. The priority now
+travels with the connect request, so a single call both connects and orders the provider.
+
+Credential fields are provider specific. For Plausible, `Credentials.Login` is the site domain
+configured in Plausible (its `site_id`, such as `example.com`) and defaults to the project domain
+when omitted, and `Credentials.APIKey` is the Stats API token.
+
+```go
+priority := 0
+connection, err := client.ConnectProvider(ctx, projectID, bisibility.ProviderIDPlausible,
+	bisibility.ConnectProviderInput{
+		Credentials: &bisibility.ProviderCredentialsInput{APIKey: statsAPIToken, Login: "example.com"},
+		Priority:    &priority,
+	})
+```
+
+`TestProviderConnection` reports a successful probe with `Message` `"Connected."` for SERP
+providers and `"Connected · <detail>."` for analytics providers, where the detail names the
+verified property or site.
+
+### Project defaults
+
+`UpdateProjectDefaults` replaces the schedule fields (`Frequency`, `CronExpression`,
+`JitterMinutes`, `Timezone`) as a whole, so omitted schedule fields fall back to server defaults.
+`SerpDepth` and `SerpStopOnMatch` are independent of the schedule: omitting either keeps its
+stored value. `SerpDepth` accepts `10`, `20`, `50`, or `100` (see `bisibility.SerpDepths`); any
+other value is rejected locally with a `ConfigurationError`.
+
+```go
+serpDepth := 50
+defaults, err := client.UpdateProjectDefaults(ctx, projectID, bisibility.ProjectDefaultsPatch{
+	Frequency:   bisibility.RankCheckFrequencyDaily,
+	LocationKey: "US/Texas/Austin",
+	SerpDepth:   &serpDepth,
+})
+```
+
 ## Methods
 
 - Discovery: `GetHealth`, `GetLiveness`, `GetReadiness`, `GetOpenAPI`, `GetCapabilities`,
@@ -329,6 +453,7 @@ outcomes on their nested keyword and page modules. Decode `APIError.Problem.Erro
   `CreateSavedKeywords`, `DeleteProjectSavedKeyword`
 - Domain overview: `AnalyzeDomainOverview`, `LoadDomainOverviewHistory`,
   `LoadDomainOverviewKeywords`, `LoadDomainOverviewPages`
+- Backlinks: `AnalyzeBacklinks`, `LoadMoreBacklinkRows`
 - Saved views: `ListSavedViews`, `CreateSavedView`, `DeleteSavedView`,
   `DeleteProjectSavedView`
 - Competitors: `ListCompetitors`, `AddCompetitor`, `RemoveCompetitor`,
@@ -341,7 +466,8 @@ outcomes on their nested keyword and page modules. Decode `APIError.Problem.Erro
   `CreateCloudImportSession`, `UploadCloudImportChunk`,
   `UploadCloudImportChunkRaw`, `FinalizeCloudImportSession`
 - Signals: `CreateSignal`, `ListSignals`
-- Sitemap monitors: `ListSitemapMonitors`, `UpdateSitemapMonitor`
+- Sitemap monitors: `ListSitemapMonitors`, `UpdateSitemapMonitor` (a project has one
+  sitemap monitor and its monitor ID is the project ID)
 
 List methods return `ListResponse[T]` with `Meta.NextCursor`. Resource methods
 return typed resources. Cursor values are opaque: pass v3 API cursors back unchanged.
@@ -443,3 +569,22 @@ _ = keyword
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+## Saved reports and provider budgets
+
+Saved report reads never invoke a provider. Use `fresh_until` to determine freshness;
+`state` is `fresh` or `stale`, while a domain report keeps its data outcome in `data_state`.
+Own-key and credit budgets are independent. Omit a field to keep it and explicitly clear
+a surface to remove its budget. Credit budgets always use cents.
+
+```go
+saved, err := client.ListStoredResearchReports(ctx, projectID)
+report, err := client.GetStoredResearchReport(ctx, projectID, bisibility.StoredReportKeywordResearch, bisibility.StoredResearchReportOptions{Seed: "example", ResultLimit: 100})
+budgets, err := client.ListProviderBudgets(ctx, projectID)
+updated, err := client.UpdateProviderBudgets(ctx, projectID, bisibility.ProviderIDDataForSEO, bisibility.ProviderBudgetsUpdate{
+    Own: &bisibility.ProviderBudgetPatch{App: bisibility.ClearProviderBudget()},
+    Credits: &bisibility.ProviderBudgetPatch{Programmatic: bisibility.ProviderBudgetValue(bisibility.ProviderMonthlyBudget{AmountPerMonth: 500, Unit: "cents"})},
+})
+```
+
+`report.Data` populates exactly one of `Backlinks`, `DomainOverview`, or `KeywordResearch`.

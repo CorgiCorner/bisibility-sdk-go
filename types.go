@@ -165,10 +165,16 @@ type ProjectDefaults struct {
 	UpdatedAt       *time.Time            `json:"updated_at"`
 }
 
+// SerpDepths are the SERP result depths accepted by ProjectDefaultsPatch.SerpDepth.
+var SerpDepths = [...]int{10, 20, 50, 100}
+
 // ProjectDefaultsPatch updates project default market and schedule settings.
 // Frequency is required by the API. Country and Device must be provided
-// together when LocationKey is omitted. Omitted schedule fields fall back to
-// server defaults (jitter_minutes 60 and timezone UTC).
+// together when LocationKey is omitted. The schedule fields (Frequency,
+// CronExpression, JitterMinutes, Timezone) are replaced as a whole, so omitted
+// schedule fields fall back to server defaults (jitter_minutes 60 and timezone
+// UTC). SerpDepth and SerpStopOnMatch are independent of the schedule: omitting
+// either keeps its stored value.
 type ProjectDefaultsPatch struct {
 	City            *string            `json:"city,omitempty"`
 	Country         string             `json:"country,omitempty"`
@@ -177,6 +183,7 @@ type ProjectDefaultsPatch struct {
 	Frequency       RankCheckFrequency `json:"frequency"`
 	JitterMinutes   *int               `json:"jitter_minutes,omitempty"`
 	LocationKey     string             `json:"location_key,omitempty"`
+	SerpDepth       *int               `json:"serp_depth,omitempty"`
 	SerpStopOnMatch *bool              `json:"serp_stop_on_match,omitempty"`
 	Timezone        string             `json:"timezone,omitempty"`
 }

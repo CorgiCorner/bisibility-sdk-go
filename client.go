@@ -26,7 +26,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.11.0"
+const Version = "0.12.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -342,10 +342,22 @@ func (c *Client) UpdateProjectDefaults(ctx context.Context, projectID string, in
 	if input.LocationKey == "" && (input.Country == "") != (input.Device == "") {
 		return nil, &ConfigurationError{Message: "UpdateProjectDefaults requires Country and Device together unless LocationKey is set."}
 	}
+	if input.SerpDepth != nil && !isSupportedSerpDepth(*input.SerpDepth) {
+		return nil, &ConfigurationError{Message: "UpdateProjectDefaults requires SerpDepth to be 10, 20, 50, or 100."}
+	}
 
 	config := newRequestConfig(options...)
 	config.body = input
 	return requestJSON[ProjectDefaults](c, ctx, http.MethodPatch, projectPathRoot+url.PathEscape(projectID)+"/defaults", config)
+}
+
+func isSupportedSerpDepth(depth int) bool {
+	for _, supported := range SerpDepths {
+		if depth == supported {
+			return true
+		}
+	}
+	return false
 }
 
 // ListAPIKeys lists API keys for the configured API key's project.

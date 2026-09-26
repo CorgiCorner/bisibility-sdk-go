@@ -86,6 +86,7 @@ func (c *Client) ListSitemapMonitors(ctx context.Context, projectID string, opti
 }
 
 // UpdateSitemapMonitor enables or disables a project sitemap monitor.
+// A project has exactly one sitemap monitor and its monitorID is the project ID.
 func (c *Client) UpdateSitemapMonitor(ctx context.Context, projectID, monitorID string, input UpdateSitemapMonitorInput, options ...RequestOption) (*SitemapMonitor, error) {
 	config := newRequestConfig(options...)
 	config.body = input
@@ -117,30 +118,21 @@ func (c *Client) ListProviders(ctx context.Context, projectID string, pagination
 }
 
 // ConnectProvider connects or updates credentials for a project provider.
+// Priority is sent with the connect request: 0 promotes the provider and renumbers the
+// fallback chain, and any other value reorders it. Omitting Priority keeps a reconnected
+// provider's place and appends a new connection to the chain. Primary is SDK sugar for
+// Priority 0 and wins when both are set.
 func (c *Client) ConnectProvider(ctx context.Context, projectID string, providerID ProviderID, input ConnectProviderInput, options ...RequestOption) (*ProviderConnection, error) {
 	config := newRequestConfig(options...)
 	connectInput := input
 	connectInput.Primary = nil
 	connectInput.Priority = nil
+	if priority, ok := connectProviderPriority(input); ok {
+		connectInput.Priority = &priority
+	}
 	config.body = connectInput
 	path := projectMemberResourcePath(projectID, "providers", string(providerID)) + "/connect"
-	connection, err := requestJSON[ProviderConnection](c, ctx, http.MethodPost, path, config)
-	if err != nil {
-		return nil, err
-	}
-
-	priority, shouldSyncPriority := connectProviderPriority(input)
-	if !shouldSyncPriority {
-		return connection, nil
-	}
-	updated, err := c.syncConnectedProviderPriority(ctx, projectID, providerID, priority, options...)
-	if err != nil {
-		return connection, &ProviderPrioritySyncError{Cause: err}
-	}
-	if updated == nil {
-		return connection, nil
-	}
-	return updated, nil
+	return requestJSON[ProviderConnection](c, ctx, http.MethodPost, path, config)
 }
 
 func connectProviderPriority(input ConnectProviderInput) (int, bool) {
@@ -151,15 +143,6 @@ func connectProviderPriority(input ConnectProviderInput) (int, bool) {
 		return *input.Priority, true
 	}
 	return 0, false
-}
-
-func (c *Client) syncConnectedProviderPriority(ctx context.Context, projectID string, providerID ProviderID, priority int, options ...RequestOption) (*ProviderConnection, error) {
-	config := newRequestConfig(options...)
-	config.body = ProviderSettingsInput{Priority: &priority}
-	config.headers.Del("Idempotency-Key")
-	config.idempotencyKey = ""
-	config.omitIdempotencyKey = true
-	return requestJSON[ProviderConnection](c, ctx, http.MethodPatch, projectMemberResourcePath(projectID, "providers", string(providerID)), config)
 }
 
 // TestProviderConnection tests credentials or a stored connection for a project provider.

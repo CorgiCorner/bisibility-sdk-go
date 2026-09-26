@@ -1,6 +1,9 @@
 package bisibility
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // BacklinkStatus describes whether a backlink is active, newly discovered, or lost.
 type BacklinkStatus string
@@ -65,13 +68,26 @@ type BacklinkRow struct {
 	TargetURL       string         `json:"target_url"`
 }
 
-// BacklinksSnapshot is one cached, paid, or estimated backlink analysis result.
+// BacklinksEstimate is the free, cost-only dry run returned for EstimateOnly requests.
+// It never carries summary, history, or row data, so an estimate can never be mistaken
+// for an empty backlink profile.
+type BacklinksEstimate struct {
+	Cached             bool                `json:"cached"`
+	CachedUntil        *time.Time          `json:"cached_until"`
+	CostCents          float64             `json:"cost_cents"`
+	Estimate           bool                `json:"estimate"`
+	EstimatedCostCents float64             `json:"estimated_cost_cents"`
+	IncludeSubdomains  bool                `json:"include_subdomains"`
+	Provider           string              `json:"provider"`
+	Target             string              `json:"target"`
+	TargetScope        BacklinkTargetScope `json:"target_scope"`
+}
+
+// BacklinksSnapshot is one cached or paid backlink analysis result.
 type BacklinksSnapshot struct {
 	Cached             bool                    `json:"cached"`
 	CachedUntil        time.Time               `json:"cached_until"`
 	CostCents          float64                 `json:"cost_cents"`
-	Estimate           *bool                   `json:"estimate,omitempty"`
-	EstimatedCostCents *float64                `json:"estimated_cost_cents,omitempty"`
 	FetchedAt          time.Time               `json:"fetched_at"`
 	FetchedRowCount    int                     `json:"fetched_row_count"`
 	History            []BacklinksHistoryMonth `json:"history"`
@@ -84,7 +100,44 @@ type BacklinksSnapshot struct {
 	TotalRowsAvailable int                     `json:"total_rows_available"`
 }
 
+// BacklinksResult is the discriminated estimate/snapshot response data returned by
+// AnalyzeBacklinks. Exactly one pointer is set after successful decoding.
+type BacklinksResult struct {
+	Estimate *BacklinksEstimate
+	Snapshot *BacklinksSnapshot
+}
+
+// UnmarshalJSON decodes an AnalyzeBacklinks result using estimate=true as its discriminator.
+func (result *BacklinksResult) UnmarshalJSON(data []byte) error {
+	var discriminator struct {
+		Estimate bool `json:"estimate"`
+	}
+	if err := json.Unmarshal(data, &discriminator); err != nil {
+		return err
+	}
+	if discriminator.Estimate {
+		var estimate BacklinksEstimate
+		if err := json.Unmarshal(data, &estimate); err != nil {
+			return err
+		}
+		result.Estimate = &estimate
+		result.Snapshot = nil
+		return nil
+	}
+	var snapshot BacklinksSnapshot
+	if err := json.Unmarshal(data, &snapshot); err != nil {
+		return err
+	}
+	result.Estimate = nil
+	result.Snapshot = &snapshot
+	return nil
+}
+
+// BacklinksResponse wraps an estimate or a snapshot in the public API data envelope.
+type BacklinksResponse = DataResponse[BacklinksResult]
+
 // BacklinksSnapshotResponse wraps a backlinks snapshot in the public API data envelope.
+// LoadMoreBacklinkRows always returns a snapshot, never an estimate.
 type BacklinksSnapshotResponse = DataResponse[BacklinksSnapshot]
 
 // AnalyzeBacklinksOptions controls a paid or estimated backlink analysis.

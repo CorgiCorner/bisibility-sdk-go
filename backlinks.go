@@ -6,8 +6,10 @@ import (
 )
 
 // AnalyzeBacklinks analyzes a backlink target or returns a free estimate-only dry run.
-// The endpoint requires write scope because cache misses can spend provider budget.
-func (c *Client) AnalyzeBacklinks(ctx context.Context, projectID string, input AnalyzeBacklinksOptions, options ...RequestOption) (*BacklinksSnapshotResponse, error) {
+// EstimateOnly requests resolve to BacklinksResult.Estimate, every other request to
+// BacklinksResult.Snapshot. The endpoint requires write scope because cache misses can
+// spend provider budget.
+func (c *Client) AnalyzeBacklinks(ctx context.Context, projectID string, input AnalyzeBacklinksOptions, options ...RequestOption) (*BacklinksResponse, error) {
 	config := newRequestConfig(options...)
 	if input.EstimateOnly {
 		config.query.Set("estimate_only", "true")
@@ -23,10 +25,11 @@ func (c *Client) AnalyzeBacklinks(ctx context.Context, projectID string, input A
 	addIntQuery(config.query, "result_limit", input.ResultLimit)
 	config.query.Set("target", input.Target)
 	addQuery(config.query, "target_scope", string(input.TargetScope))
-	return requestJSON[BacklinksSnapshotResponse](c, ctx, http.MethodGet, projectResourcePath(projectID, "backlinks"), config)
+	return requestJSON[BacklinksResponse](c, ctx, http.MethodGet, projectResourcePath(projectID, "backlinks"), config)
 }
 
 // LoadMoreBacklinkRows loads paid rows into an unexpired backlinks snapshot.
+// It always returns a snapshot and never an estimate.
 // The endpoint requires write scope because the provider call spends project budget.
 func (c *Client) LoadMoreBacklinkRows(ctx context.Context, projectID string, input LoadMoreBacklinkRowsOptions, options ...RequestOption) (*BacklinksSnapshotResponse, error) {
 	config := newRequestConfig(options...)

@@ -594,6 +594,7 @@ func TestProtectedMethods(t *testing.T) {
 			name: "update project defaults",
 			call: func(ctx context.Context, c *Client) (any, error) {
 				jitter := 30
+				serpDepth := 100
 				serpStopOnMatch := true
 				return c.UpdateProjectDefaults(ctx, "prj_a00000000000000000000000", ProjectDefaultsPatch{
 					City:            strPtr("Austin"),
@@ -601,13 +602,14 @@ func TestProtectedMethods(t *testing.T) {
 					Device:          DeviceMobile,
 					Frequency:       RankCheckFrequencyDaily,
 					JitterMinutes:   &jitter,
+					SerpDepth:       &serpDepth,
 					SerpStopOnMatch: &serpStopOnMatch,
 					Timezone:        "America/Chicago",
 				})
 			},
 			method:          http.MethodPatch,
 			path:            "/api/v1/projects/prj_a00000000000000000000000/defaults",
-			body:            `{"city":"Austin","country":"United States","device":"mobile","frequency":"daily","jitter_minutes":30,"serp_stop_on_match":true,"timezone":"America/Chicago"}`,
+			body:            `{"city":"Austin","country":"United States","device":"mobile","frequency":"daily","jitter_minutes":30,"serp_depth":100,"serp_stop_on_match":true,"timezone":"America/Chicago"}`,
 			response:        projectDefaultsJSON("prj_a00000000000000000000000"),
 			wantContentType: true,
 			want: func(t *testing.T, got any) {
@@ -628,6 +630,7 @@ func TestProtectedMethods(t *testing.T) {
 		{
 			name: "update project defaults by location key",
 			call: func(ctx context.Context, c *Client) (any, error) {
+				// An omitted SerpDepth must stay off the wire so the server keeps the stored depth.
 				return c.UpdateProjectDefaults(ctx, "prj_a00000000000000000000000", ProjectDefaultsPatch{
 					Frequency:   RankCheckFrequencyWeekly,
 					LocationKey: "US/Texas/Austin",
@@ -1240,6 +1243,11 @@ func TestClientErrors(t *testing.T) {
 				Device:    DeviceMobile,
 				Frequency: RankCheckFrequencyDaily,
 			},
+			"unsupported serp depth": {
+				Frequency:   RankCheckFrequencyDaily,
+				LocationKey: "US/Texas/Austin",
+				SerpDepth:   intPtr(30),
+			},
 		}
 		for name, input := range inputs {
 			_, err := client.UpdateProjectDefaults(context.Background(), "prj_a00000000000000000000000", input)
@@ -1440,8 +1448,8 @@ func TestUserAgentHeader(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.11.0" {
-				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.11.0")
+			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.12.0" {
+				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.12.0")
 			}
 			if got := r.Header.Get("X-Bisibility-Client"); got != "bisibility-sdk-go/"+Version {
 				t.Fatalf("X-Bisibility-Client = %q, want %q", got, "bisibility-sdk-go/"+Version)
