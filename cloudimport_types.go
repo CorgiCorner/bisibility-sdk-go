@@ -9,9 +9,15 @@ import (
 	"time"
 )
 
-// CloudImportProtocolVersion is the only export-package protocol version
-// supported by the cloud-import API.
-const CloudImportProtocolVersion = 5
+// CloudImportProtocolVersion is the current export-package protocol version.
+const CloudImportProtocolVersion = 7
+
+func cloudImportVersion(version int) int {
+	if version == 0 {
+		return CloudImportProtocolVersion
+	}
+	return version
+}
 
 // CloudImportScope selects the data included in an export package.
 type CloudImportScope string
@@ -46,7 +52,7 @@ const (
 )
 
 // CloudImportCompatibility is the unauthenticated schema-compatibility
-// preflight. A valid response lists only protocol version 5.
+// preflight. The response lists versions supported by the server.
 type CloudImportCompatibility struct {
 	AppVersion              string  `json:"app_version"`
 	LatestMigration         *string `json:"latest_migration"`
@@ -74,10 +80,11 @@ type CloudImportAlertRuleTarget interface {
 // CloudImportKeywordAlertTarget is the keyword variant of an alert-rule
 // target. Its JSON representation always includes type: "keyword".
 type CloudImportKeywordAlertTarget struct {
-	Device    Device `json:"device,omitempty"`
-	Keyword   string `json:"keyword,omitempty"`
-	KeywordID string `json:"keyword_id"`
-	Location  string `json:"location,omitempty"`
+	Device      Device `json:"device,omitempty"`
+	Keyword     string `json:"keyword,omitempty"`
+	KeywordID   string `json:"keyword_id"`
+	Location    string `json:"location,omitempty"`
+	LocationKey string `json:"location_key,omitempty"`
 }
 
 func (CloudImportKeywordAlertTarget) cloudImportAlertRuleTarget() {
@@ -96,6 +103,7 @@ func (CloudImportTagAlertTarget) cloudImportAlertRuleTarget() {
 
 // CloudImportAlertRule is a migrated alert rule. ID and Name are required.
 type CloudImportAlertRule struct {
+	Severity          string                       `json:"severity,omitempty"`
 	ChangePct         *float64                     `json:"change_pct,omitempty"`
 	Channels          []AlertChannel               `json:"channels,omitempty"`
 	CompetitorDomain  *string                      `json:"competitor_domain,omitempty"`
@@ -122,20 +130,23 @@ type CloudImportCompetitor struct {
 // CloudImportRankingHistory is one migrated ranking-history point. CheckedAt
 // is required and uses the API's camelCase nested wire property.
 type CloudImportRankingHistory struct {
-	CheckedAt        time.Time `json:"checkedAt"`
-	Position         *int      `json:"position,omitempty"`
-	PreviousPosition *int      `json:"previousPosition,omitempty"`
-	RankingURL       *string   `json:"rankingUrl,omitempty"`
+	CheckedAt            time.Time `json:"checkedAt"`
+	NormalizationVersion string    `json:"normalizationVersion"`
+	Position             *int      `json:"position"`
+	PreviousPosition     *int      `json:"previousPosition"`
+	Provider             string    `json:"provider"`
+	RankingURL           *string   `json:"rankingUrl"`
+	RequestedDepth       *int      `json:"requestedDepth"`
 }
 
 // CloudImportKeyword is a migrated keyword. ID, Keyword, Device, and Location
-// are required. rankingHistory deliberately remains camelCase because that is
-// the v5 OpenAPI wire contract.
+// are required. rankingHistory retains the camelCase export wire properties.
 type CloudImportKeyword struct {
 	Device         Device                      `json:"device"`
 	ID             string                      `json:"id"`
 	Keyword        string                      `json:"keyword"`
 	Location       string                      `json:"location"`
+	LocationKey    string                      `json:"location_key,omitempty"`
 	RankingHistory []CloudImportRankingHistory `json:"rankingHistory,omitempty"`
 	Tags           []string                    `json:"tags,omitempty"`
 	TargetURL      *string                     `json:"target_url,omitempty"`
@@ -164,10 +175,11 @@ type CloudImportSavedView struct {
 	Surface CloudImportSavedViewSurface `json:"surface,omitempty"`
 }
 
-// CloudImportPackage is the complete v5 export accepted by ImportCloudExport.
-// The SDK writes version 5 itself. Every collection below is required and must
+// CloudImportPackage supports version 6/7 exports and metadata-only version 5 exports.
+// Version defaults to 7 when zero. Every collection below is required and must
 // be represented by a non-nil slice, including when it is empty.
 type CloudImportPackage struct {
+	Version                 int                                 `json:"version"`
 	AlertRules              []CloudImportAlertRule              `json:"alert_rules"`
 	Competitors             []CloudImportCompetitor             `json:"competitors"`
 	ExportedAt              *time.Time                          `json:"exported_at,omitempty"`
@@ -185,9 +197,10 @@ type CloudImportSessionTotals struct {
 	RankChecks int `json:"rank_checks"`
 }
 
-// CloudImportSessionCreate creates a chunked v5 cloud-import session. The SDK
-// writes version 5 itself; ChunkCount and SourceProjectID are required.
+// CloudImportSessionCreate creates a chunked version 6/7 cloud-import session.
+// Version defaults to 7 when zero; ChunkCount and SourceProjectID are required.
 type CloudImportSessionCreate struct {
+	Version         int                       `json:"version"`
 	ChunkCount      int                       `json:"chunk_count"`
 	SourceProjectID string                    `json:"source_project_id"`
 	Totals          *CloudImportSessionTotals `json:"totals,omitempty"`
@@ -210,13 +223,14 @@ type CloudImportSessionCreateResponse struct {
 
 // CloudImportSourceKeyword identifies a source keyword in a sections chunk.
 type CloudImportSourceKeyword struct {
-	Device   Device `json:"device"`
-	Location string `json:"location"`
-	Text     string `json:"text"`
+	Device      Device `json:"device"`
+	Location    string `json:"location"`
+	LocationKey string `json:"location_key,omitempty"`
+	Text        string `json:"text"`
 }
 
 // CloudImportSessionSections carries the non-keyword sections in a sections
-// chunk. All section properties are optional, as specified by v5.
+// chunk. All section properties are optional.
 type CloudImportSessionSections struct {
 	AlertRules              []CloudImportAlertRule              `json:"alert_rules,omitempty"`
 	Competitors             []CloudImportCompetitor             `json:"competitors,omitempty"`
@@ -309,21 +323,23 @@ func (input CloudImportKeywordAlertTarget) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(struct {
-		Device    Device `json:"device,omitempty"`
-		Keyword   string `json:"keyword,omitempty"`
-		KeywordID string `json:"keyword_id"`
-		Location  string `json:"location,omitempty"`
-		Type      string `json:"type"`
-	}{input.Device, input.Keyword, input.KeywordID, input.Location, "keyword"})
+		Device      Device `json:"device,omitempty"`
+		Keyword     string `json:"keyword,omitempty"`
+		KeywordID   string `json:"keyword_id"`
+		Location    string `json:"location,omitempty"`
+		LocationKey string `json:"location_key,omitempty"`
+		Type        string `json:"type"`
+	}{input.Device, input.Keyword, input.KeywordID, input.Location, input.LocationKey, "keyword"})
 }
 
 func (input *CloudImportKeywordAlertTarget) UnmarshalJSON(data []byte) error {
 	var decoded struct {
-		Device    Device `json:"device,omitempty"`
-		Keyword   string `json:"keyword,omitempty"`
-		KeywordID string `json:"keyword_id"`
-		Location  string `json:"location,omitempty"`
-		Type      string `json:"type"`
+		Device      Device `json:"device,omitempty"`
+		Keyword     string `json:"keyword,omitempty"`
+		KeywordID   string `json:"keyword_id"`
+		Location    string `json:"location,omitempty"`
+		LocationKey string `json:"location_key,omitempty"`
+		Type        string `json:"type"`
 	}
 	if err := decodeStrictCloudImportObject(data, &decoded, "CloudImportKeywordAlertTarget", []string{"keyword_id", "type"}, nil); err != nil {
 		return err
@@ -331,7 +347,7 @@ func (input *CloudImportKeywordAlertTarget) UnmarshalJSON(data []byte) error {
 	if decoded.Type != "keyword" {
 		return fmt.Errorf("CloudImportKeywordAlertTarget.type must be keyword")
 	}
-	value := CloudImportKeywordAlertTarget{Device: decoded.Device, Keyword: decoded.Keyword, KeywordID: decoded.KeywordID, Location: decoded.Location}
+	value := CloudImportKeywordAlertTarget{Device: decoded.Device, Keyword: decoded.Keyword, KeywordID: decoded.KeywordID, Location: decoded.Location, LocationKey: decoded.LocationKey}
 	if err := validateCloudImportKeywordAlertTarget(value, "CloudImportKeywordAlertTarget"); err != nil {
 		return err
 	}
@@ -387,6 +403,7 @@ func (input *CloudImportAlertRule) UnmarshalJSON(data []byte) error {
 		ID                string                    `json:"id"`
 		Name              string                    `json:"name"`
 		SerpFeature       *string                   `json:"serp_feature,omitempty"`
+		Severity          string                    `json:"severity,omitempty"`
 		TargetType        AlertTargetType           `json:"target_type,omitempty"`
 		Targets           []json.RawMessage         `json:"targets,omitempty"`
 		ThresholdPosition *int                      `json:"threshold_position,omitempty"`
@@ -406,7 +423,7 @@ func (input *CloudImportAlertRule) UnmarshalJSON(data []byte) error {
 	value := CloudImportAlertRule{
 		ChangePct: decoded.ChangePct, Channels: decoded.Channels, CompetitorDomain: decoded.CompetitorDomain,
 		ConditionType: decoded.ConditionType, DropPositions: decoded.DropPositions, Enabled: decoded.Enabled,
-		ID: decoded.ID, Name: decoded.Name, SerpFeature: decoded.SerpFeature, TargetType: decoded.TargetType,
+		ID: decoded.ID, Name: decoded.Name, SerpFeature: decoded.SerpFeature, Severity: decoded.Severity, TargetType: decoded.TargetType,
 		Targets: targets, ThresholdPosition: decoded.ThresholdPosition, TopN: decoded.TopN,
 	}
 	if err := validateCloudImportAlertRule(value, "CloudImportAlertRule"); err != nil {
@@ -449,7 +466,7 @@ func (input CloudImportRankingHistory) MarshalJSON() ([]byte, error) {
 func (input *CloudImportRankingHistory) UnmarshalJSON(data []byte) error {
 	type wire CloudImportRankingHistory
 	var decoded wire
-	if err := decodeStrictCloudImportObject(data, &decoded, "CloudImportRankingHistory", []string{"checkedAt"}, map[string]bool{"position": true, "previousPosition": true, "rankingUrl": true}); err != nil {
+	if err := decodeStrictCloudImportObject(data, &decoded, "CloudImportRankingHistory", []string{"checkedAt", "normalizationVersion", "position", "previousPosition", "provider", "rankingUrl", "requestedDepth"}, map[string]bool{"position": true, "previousPosition": true, "rankingUrl": true, "requestedDepth": true}); err != nil {
 		return err
 	}
 	value := CloudImportRankingHistory(decoded)
@@ -533,7 +550,7 @@ func (input CloudImportPackage) MarshalJSON() ([]byte, error) {
 		SavedViews              []CloudImportSavedView              `json:"saved_views"`
 		Scope                   CloudImportScope                    `json:"scope,omitempty"`
 		Version                 int                                 `json:"version"`
-	}{input.AlertRules, input.Competitors, input.ExportedAt, input.Keywords, input.NotificationPreferences, input.ProjectID, input.SavedViews, input.Scope, CloudImportProtocolVersion})
+	}{input.AlertRules, input.Competitors, input.ExportedAt, input.Keywords, input.NotificationPreferences, input.ProjectID, input.SavedViews, input.Scope, cloudImportVersion(input.Version)})
 }
 
 func (input *CloudImportPackage) UnmarshalJSON(data []byte) error {
@@ -551,11 +568,11 @@ func (input *CloudImportPackage) UnmarshalJSON(data []byte) error {
 	if err := decodeStrictCloudImportObject(data, &decoded, "CloudImportPackage", []string{"version", "project_id", "keywords", "alert_rules", "competitors", "notification_preferences", "saved_views"}, nil); err != nil {
 		return err
 	}
-	if decoded.Version != CloudImportProtocolVersion {
-		return fmt.Errorf("CloudImportPackage.version must be %d", CloudImportProtocolVersion)
+	if decoded.Version != 5 && decoded.Version != 6 && decoded.Version != 7 {
+		return fmt.Errorf("CloudImportPackage.version must be 5, 6, or 7")
 	}
 	value := CloudImportPackage{
-		AlertRules: decoded.AlertRules, Competitors: decoded.Competitors, ExportedAt: decoded.ExportedAt,
+		Version: decoded.Version, AlertRules: decoded.AlertRules, Competitors: decoded.Competitors, ExportedAt: decoded.ExportedAt,
 		Keywords: decoded.Keywords, NotificationPreferences: decoded.NotificationPreferences,
 		ProjectID: decoded.ProjectID, SavedViews: decoded.SavedViews, Scope: decoded.Scope,
 	}
@@ -597,7 +614,7 @@ func (input CloudImportSessionCreate) MarshalJSON() ([]byte, error) {
 		SourceProjectID string                    `json:"source_project_id"`
 		Totals          *CloudImportSessionTotals `json:"totals,omitempty"`
 		Version         int                       `json:"version"`
-	}{input.ChunkCount, input.SourceProjectID, input.Totals, CloudImportProtocolVersion})
+	}{input.ChunkCount, input.SourceProjectID, input.Totals, cloudImportVersion(input.Version)})
 }
 
 func (input *CloudImportSessionCreate) UnmarshalJSON(data []byte) error {
@@ -610,10 +627,10 @@ func (input *CloudImportSessionCreate) UnmarshalJSON(data []byte) error {
 	if err := decodeStrictCloudImportObject(data, &decoded, "CloudImportSessionCreate", []string{"version", "chunk_count", "source_project_id"}, nil); err != nil {
 		return err
 	}
-	if decoded.Version != CloudImportProtocolVersion {
-		return fmt.Errorf("CloudImportSessionCreate.version must be %d", CloudImportProtocolVersion)
+	if decoded.Version != 6 && decoded.Version != 7 {
+		return fmt.Errorf("CloudImportSessionCreate.version must be 6 or 7")
 	}
-	value := CloudImportSessionCreate{ChunkCount: decoded.ChunkCount, SourceProjectID: decoded.SourceProjectID, Totals: decoded.Totals}
+	value := CloudImportSessionCreate{Version: decoded.Version, ChunkCount: decoded.ChunkCount, SourceProjectID: decoded.SourceProjectID, Totals: decoded.Totals}
 	if err := validateCloudImportSessionCreate(value, "CloudImportSessionCreate"); err != nil {
 		return err
 	}

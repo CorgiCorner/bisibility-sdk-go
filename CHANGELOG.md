@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.13.0 - 2026-10-07
+
+- Add typed project context, agent reports, AI visibility, prompt comparison, and site-audit
+  methods, including strict report IDs and cursor iteration.
+- Keep queued rank-check polling active until the matching check is completed or failed while
+  preserving context cancellation.
+- Preserve rank-check cost caps without a provider override and add `MaxCostCentsOverride` for
+  explicit zero ceilings, taking precedence over the existing integer field.
+- Support cloud-import package and session versions 6 and 7, including current ranking-history
+  metadata, canonical location keys, and alert severity. Preserve required null history values,
+  accept server-advertised integer compatibility versions, and reject ambiguous legacy history.
+  Package and session `Version` fields default to 7 when zero; legacy version 5 packages may
+  contain metadata only.
+- Correct product, public-ID, migration, and feature-pricing guidance.
+
 ## 0.12.0 - 2026-09-27
 
 - Added saved research report reads and separate own-key and credit provider budget methods.

@@ -2,12 +2,14 @@ package bisibility
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -135,5 +137,206 @@ func TestStoredKeywordIntentPreservesNull(t *testing.T) {
 	}
 	if r.KeywordResearch == nil || r.KeywordResearch.Rows[0].Intent != nil || r.KeywordResearch.Rows[1].Intent == nil || *r.KeywordResearch.Rows[1].Intent != "commercial" {
 		t.Fatal(r)
+	}
+}
+
+const researchWorkspaceFixtures = `{"report": {"id": "agr_a00000000000000000000000", "kind": "external_review", "title": "Review", "created_at": "2026-10-07T00:00:00Z", "body": {"CamelCase": {"keyword_id": "producer-defined"}}, "provenance": {"SourceUrl": "https://example.org/source"}}, "summary": {"id": "agr_a00000000000000000000000", "kind": "external_review", "title": "Review", "created_at": "2026-10-07T00:00:00Z"}, "context": {"business": "Example", "audience": "Developers", "products": "API", "goals": "Quality", "agent_rules": "Use sources", "updated_at": null}, "site": {"id": "agr_a00000000000000000000000", "created_at": "2026-10-07T00:00:00Z", "cached": false, "result": {"version": 1, "target": "https://example.com", "started_at": "2026-10-07T00:00:00Z", "completed_at": "2026-10-07T00:00:00Z", "state": "complete", "stop_reason": "finished", "limits": {"max_pages": 10, "max_requests": 20, "max_duration_ms": 1000, "max_page_bytes": 1048576}, "requests": 1, "pages": [{"url": "https://example.com", "final_url": "https://example.com", "status": 200, "response_time_ms": 1, "title": "Example", "description": null, "canonical": null, "headings": [{"level": 1, "text": "Example"}], "h1_count": 1, "indexable": true, "robots": null, "internal_link_count": 0, "external_link_count": 0, "internal_links": [], "image_count": 0, "missing_alt_count": 0, "issues": [{"code": "description_missing", "message": "Missing description", "severity": "warning"}]}], "summary": {"pages": 1, "errors": 0, "warnings": 1, "indexable": 1}, "limitations": ["Bounded crawl"]}}, "estimate": {"ok": true, "estimate": true, "estimated_cost_cents": 1.25, "evidence": "observed_dataset"}, "ai": {"ok": true, "estimate": false, "cached": false, "report_id": "agr_a00000000000000000000000", "cost_cents": 1.25, "result": {"evidence": "synthetic_prompt_test", "rows": [{"prompt": "Example", "model": "gpt-4.1-mini", "answer": "Example API", "observed_at": null, "brand_mentioned": true, "domain_cited": true, "citations": [{"title": "Example", "url": "https://example.com", "target_domain": true}], "content_truncated": false}], "total_available": null, "truncated": false, "fetched_at": "2026-10-07T00:00:00Z", "cost_cents": 1.25, "cost_status": "confirmed", "failure": null}}}`
+
+func TestResearchWorkspaceOperations(t *testing.T) {
+	var fixtures map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(researchWorkspaceFixtures), &fixtures); err != nil {
+		t.Fatal(err)
+	}
+	projectID := "prj_a00000000000000000000000"
+	reportID := "agr_a00000000000000000000000"
+	for _, test := range []struct {
+		name, method, path, fixture string
+		call                        func(*Client) (any, error)
+	}{
+		{"context get", "GET", "context", "context", func(c *Client) (any, error) { return c.GetProjectContext(context.Background(), projectID) }},
+		{"context update", "PATCH", "context", "context", func(c *Client) (any, error) {
+			return c.UpdateProjectContext(context.Background(), projectID, ProjectContextInput{Business: "Example"})
+		}},
+		{"report list", "GET", "agent-reports", "summary", func(c *Client) (any, error) {
+			return c.ListAgentReports(context.Background(), projectID, &ListAgentReportsOptions{Kind: "external_review", Limit: 10})
+		}},
+		{"report create", "POST", "agent-reports", "report", func(c *Client) (any, error) {
+			return c.CreateAgentReport(context.Background(), projectID, CreateAgentReportInput{Kind: "external_review", Title: "Review", Body: map[string]any{"CamelCase": true}})
+		}},
+		{"report get", "GET", "agent-reports/" + reportID, "report", func(c *Client) (any, error) { return c.GetAgentReport(context.Background(), projectID, reportID) }},
+		{"audit list", "GET", "site-audits", "summary", func(c *Client) (any, error) { return c.ListSiteAudits(context.Background(), projectID) }},
+		{"audit run", "POST", "site-audits", "site", func(c *Client) (any, error) {
+			return c.RunSiteAudit(context.Background(), projectID, &RunSiteAuditOptions{MaxPages: 2})
+		}},
+		{"audit get", "GET", "site-audits/" + reportID, "site", func(c *Client) (any, error) { return c.GetSiteAudit(context.Background(), projectID, reportID) }},
+		{"visibility", "POST", "ai-visibility", "estimate", func(c *Client) (any, error) {
+			return c.AnalyzeAIVisibility(context.Background(), projectID, AnalyzeAIVisibilityOptions{AIResearchInput: AIResearchInput{Brand: "Example", Domain: "example.com", MaxCostCents: 0, EstimateOnly: true}})
+		}},
+		{"prompt", "POST", "prompt-explorer", "ai", func(c *Client) (any, error) {
+			return c.CompareAIPrompts(context.Background(), projectID, CompareAIPromptsOptions{AIResearchInput: AIResearchInput{Brand: "Example", Domain: "example.com", MaxCostCents: 2}, Prompt: "Example", Models: []string{"gpt-4.1-mini"}})
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			calls := 0
+			client, err := NewClient(WithBaseURL("https://api.example.com/api/v1"), WithAPIKey(testAPIKey), WithHTTPClient(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				calls++
+				assertEqual(t, r.Method, test.method)
+				assertEqual(t, r.URL.Path, "/api/v1/projects/"+projectID+"/"+test.path)
+				if test.method != "GET" {
+					body, err := io.ReadAll(r.Body)
+					if err != nil {
+						t.Fatal(err)
+					}
+					var value map[string]any
+					if err := json.Unmarshal(body, &value); err != nil {
+						t.Fatal(err)
+					}
+					if strings.HasPrefix(test.path, "ai-") || test.path == "prompt-explorer" {
+						if _, present := value["max_cost_cents"]; !present {
+							t.Fatal("missing explicit cost cap")
+						}
+					}
+					if test.name == "report create" {
+						if value["body"].(map[string]any)["CamelCase"] != true {
+							t.Fatal("producer JSON changed")
+						}
+					}
+				}
+				data := string(fixtures[test.fixture])
+				if strings.HasSuffix(test.name, "list") {
+					data = "[" + data + "]"
+				}
+				body := `{"data":` + data + `}`
+				if test.name == "report list" {
+					body = `{"data":` + data + `,"meta":{"next_cursor":null}}`
+				}
+				return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+			})}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := test.call(client)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result == nil {
+				t.Fatal("nil result")
+			}
+			assertEqual(t, calls, 1)
+			switch value := result.(type) {
+			case *DataResponse[SiteAuditReport]:
+				assertEqual(t, value.Data.Result.Pages[0].Headings[0].Text, "Example")
+			case *DataResponse[AIAnalysisOutcome]:
+				if value.Data.Estimate {
+					if value.Data.EstimatedCostCents == nil {
+						t.Fatal("missing estimate")
+					}
+				} else {
+					assertEqual(t, value.Data.Result.Rows[0].Citations[0].URL, "https://example.com")
+				}
+			case *DataResponse[AgentReportResource]:
+				if _, ok := value.Data.Body["CamelCase"]; !ok {
+					t.Fatal("producer JSON changed")
+				}
+			}
+		})
+	}
+}
+
+func TestResearchWorkspaceRejectsMalformedContracts(t *testing.T) {
+	client, err := NewClient(WithBaseURL("https://api.example.com/api/v1"), WithAPIKey(testAPIKey), WithHTTPClient(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		t.Fatal("invalid input reached transport")
+		return nil, nil
+	})}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.GetAgentReport(context.Background(), "prj_a00000000000000000000000", "kw_a00000000000000000000000"); err == nil {
+		t.Fatal("wrong report prefix accepted")
+	}
+	if _, err := client.RunSiteAudit(context.Background(), "prj_a00000000000000000000000", &RunSiteAuditOptions{MaxPages: 16}); err == nil {
+		t.Fatal("unbounded crawl accepted")
+	}
+	if _, err := client.CreateAgentReport(context.Background(), "prj_a00000000000000000000000", CreateAgentReportInput{Kind: "site_audit", Title: "Report", Body: map[string]any{}}); err == nil {
+		t.Fatal("reserved producer accepted")
+	}
+	var outcome AIAnalysisOutcome
+	if err := json.Unmarshal([]byte(`{"ok":true,"estimate":false,"cached":false}`), &outcome); err == nil {
+		t.Fatal("incomplete report accepted")
+	}
+}
+
+func TestAgentReportPagerPreservesFilters(t *testing.T) {
+	cursor := base64.RawURLEncoding.EncodeToString([]byte(`{"v":3,"public_id":"agr_a00000000000000000000000","t":"2026-10-07T00:00:00Z"}`))
+	calls := 0
+	client, err := NewClient(WithBaseURL("https://api.example.com/api/v1"), WithAPIKey(testAPIKey), WithHTTPClient(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		calls++
+		assertEqual(t, r.URL.Query().Get("kind"), "external_review")
+		assertEqual(t, r.URL.Query().Get("limit"), "1")
+		next := `null`
+		if calls == 1 {
+			assertEqual(t, r.URL.Query().Get("cursor"), "")
+			next = `"` + cursor + `"`
+		} else {
+			assertEqual(t, r.URL.Query().Get("cursor"), cursor)
+		}
+		body := `{"data":[{"id":"agr_a00000000000000000000000","title":"Review","kind":"external_review","created_at":"2026-10-07T00:00:00Z"}],"meta":{"next_cursor":` + next + `}}`
+		return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+	})}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pager := client.IterateAgentReports(context.Background(), "prj_a00000000000000000000000", &ListAgentReportsOptions{Kind: "external_review", Limit: 1})
+	count := 0
+	for pager.Next() {
+		count++
+		assertEqual(t, pager.Item().Kind, "external_review")
+	}
+	if err := pager.Err(); err != nil {
+		t.Fatal(err)
+	}
+	assertEqual(t, count, 2)
+	assertEqual(t, calls, 2)
+}
+
+func TestAIAnalysisRequiresBooleanEstimate(t *testing.T) {
+	var fixtures map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(researchWorkspaceFixtures), &fixtures); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name, fixture, discriminator string
+		valid                        bool
+	}{
+		{"null", "ai", "null", false},
+		{"missing", "ai", "", false},
+		{"string", "ai", `"false"`, false},
+		{"number", "ai", "0", false},
+		{"report false", "ai", "false", true},
+		{"estimate true", "estimate", "true", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(fixtures[test.fixture], &fields); err != nil {
+				t.Fatal(err)
+			}
+			if test.discriminator == "" {
+				delete(fields, "estimate")
+			} else {
+				fields["estimate"] = json.RawMessage(test.discriminator)
+			}
+			data, err := json.Marshal(fields)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var outcome AIAnalysisOutcome
+			err = json.Unmarshal(data, &outcome)
+			if test.valid && err != nil {
+				t.Fatalf("valid discriminator rejected: %v", err)
+			}
+			if !test.valid && err == nil {
+				t.Fatal("invalid discriminator accepted")
+			}
+		})
 	}
 }

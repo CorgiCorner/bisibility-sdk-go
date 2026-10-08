@@ -24,7 +24,7 @@ func strictID(prefix PublicIDPrefix) string {
 
 func TestPublicIDPrefixRegistry(t *testing.T) {
 	want := []string{
-		"al", "alr", "audit", "check", "cmp", "conn", "dwh", "ferry", "imp", "inv", "key", "kw",
+		"agr", "al", "alr", "audit", "check", "cmp", "conn", "dwh", "ferry", "imp", "inv", "key", "kw",
 		"mbr", "ntf", "pat", "prj", "rcr", "sid", "sig", "svkw", "tag", "usr", "viw", "we",
 	}
 	got := make([]string, 0, len(publicIDPrefixes))
@@ -343,6 +343,10 @@ func TestAlertRuleResponsePublicIDs(t *testing.T) {
 
 func TestPublicIDResponseSchemas(t *testing.T) {
 	contracts := map[reflect.Type]map[string]PublicIDPrefix{
+		reflect.TypeOf(AgentReportSummary{}):               {"id": PublicIDPrefixReport},
+		reflect.TypeOf(AgentReportResource{}):              {"id": PublicIDPrefixReport},
+		reflect.TypeOf(SiteAuditReport{}):                  {"id": PublicIDPrefixReport},
+		reflect.TypeOf(AIAnalysisOutcome{}):                {"report_id": PublicIDPrefixReport},
 		reflect.TypeOf(Project{}):                          {"id": PublicIDPrefixProject},
 		reflect.TypeOf(ProjectDefaults{}):                  {"project_id": PublicIDPrefixProject},
 		reflect.TypeOf(ProjectOverview{}):                  {"project_id": PublicIDPrefixProject},

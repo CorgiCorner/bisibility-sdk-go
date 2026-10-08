@@ -14,6 +14,7 @@ import (
 type PublicIDPrefix string
 
 const (
+	PublicIDPrefixReport  PublicIDPrefix = "agr"
 	PublicIDPrefixAlert   PublicIDPrefix = "al"
 	PublicIDPrefixRule    PublicIDPrefix = "alr"
 	PublicIDPrefixAudit   PublicIDPrefix = "audit"
@@ -41,7 +42,8 @@ const (
 )
 
 var publicIDPrefixes = map[PublicIDPrefix]struct{}{
-	PublicIDPrefixAlert: {}, PublicIDPrefixAudit: {}, PublicIDPrefixCheck: {},
+	PublicIDPrefixReport: {},
+	PublicIDPrefixAlert:  {}, PublicIDPrefixAudit: {}, PublicIDPrefixCheck: {},
 	PublicIDPrefixComp: {}, PublicIDPrefixConn: {}, PublicIDPrefixHook: {},
 	PublicIDPrefixInvite: {}, PublicIDPrefixJob: {}, PublicIDPrefixKey: {},
 	PublicIDPrefixKeyword: {}, PublicIDPrefixMember: {}, PublicIDPrefixMToken: {},
@@ -189,6 +191,8 @@ func validateProjectRoutePart(parts []string, position int, part string) (bool, 
 		return false, nil
 	}
 	switch part {
+	case "agent-reports", "site-audits":
+		return true, validateRoutePart(parts, position+1, "reportID", PublicIDPrefixReport)
 	case "webhooks":
 		return true, validateRoutePart(parts, position+1, "webhookID", PublicIDPrefixWebhook)
 	case "triggered-alerts":
@@ -356,6 +360,10 @@ var bodyIDFieldPrefixes = map[string]PublicIDPrefix{
 // responsePublicIDFieldPrefixes records every SDK response field that carries
 // a public resource ID. Natural provider IDs and location keys are omitted.
 var responsePublicIDFieldPrefixes = map[reflect.Type]map[string]PublicIDPrefix{
+	reflect.TypeOf(AgentReportSummary{}):               {"id": PublicIDPrefixReport},
+	reflect.TypeOf(AgentReportResource{}):              {"id": PublicIDPrefixReport},
+	reflect.TypeOf(SiteAuditReport{}):                  {"id": PublicIDPrefixReport},
+	reflect.TypeOf(AIAnalysisOutcome{}):                {"report_id": PublicIDPrefixReport},
 	reflect.TypeOf(Project{}):                          {"id": PublicIDPrefixProject},
 	reflect.TypeOf(ProjectDefaults{}):                  {"project_id": PublicIDPrefixProject},
 	reflect.TypeOf(ProjectOverview{}):                  {"project_id": PublicIDPrefixProject},
@@ -615,6 +623,21 @@ func validateCloudImportPackage(input CloudImportPackage, path string) error {
 }
 
 func validateCloudImportPackageFields(input CloudImportPackage, path string) error {
+	version := cloudImportVersion(input.Version)
+	if version != 5 && version != 6 && version != 7 {
+		return cloudImportConfigurationError("%s.version must be 5, 6, or 7", path)
+	}
+	for index, keyword := range input.Keywords {
+		if version == 5 && len(keyword.RankingHistory) > 0 {
+			return cloudImportConfigurationError("%s.keywords[%d] has ambiguous version 5 history; re-export the package", path, index)
+		}
+		if version < 7 && keyword.LocationKey != "" {
+			return cloudImportConfigurationError("%s.keywords[%d].location_key requires version 7", path, index)
+		}
+		if version == 7 && keyword.LocationKey == "" {
+			return cloudImportConfigurationError("%s.keywords[%d].location_key is required in version 7", path, index)
+		}
+	}
 	if err := requirePublicID(input.ProjectID, path+".project_id", PublicIDPrefixProject); err != nil {
 		return err
 	}
@@ -693,10 +716,11 @@ func validateCloudImportCompatibility(input CloudImportCompatibility) error {
 		return cloudImportConfigurationError("CloudImportCompatibility.schema_versions_supported is required")
 	}
 	for index, version := range input.SchemaVersionsSupported {
-		if version != CloudImportProtocolVersion {
-			return cloudImportConfigurationError("CloudImportCompatibility.schema_versions_supported[%d] must be %d", index, CloudImportProtocolVersion)
+		if version < 1 {
+			return cloudImportConfigurationError("CloudImportCompatibility.schema_versions_supported[%d] must be a positive integer", index)
 		}
 	}
+
 	return nil
 }
 
@@ -723,8 +747,8 @@ func validateCloudImportKeyword(input CloudImportKeyword, path string) error {
 	if !isCloudImportDevice(input.Device) {
 		return cloudImportConfigurationError(cloudImportDeviceValidationError, path)
 	}
-	if !isCloudImportLocation(input.Location) {
-		return cloudImportConfigurationError(cloudImportLocationValidationError, path)
+	if err := validateCloudImportLocationIdentity(input.Location, input.LocationKey, path); err != nil {
+		return err
 	}
 	if len(input.RankingHistory) > 5000 {
 		return cloudImportConfigurationError("%s.rankingHistory must contain at most 5000 rows", path)
@@ -749,6 +773,15 @@ func validateCloudImportKeyword(input CloudImportKeyword, path string) error {
 }
 
 func validateCloudImportRankingHistory(input CloudImportRankingHistory, path string) error {
+	if input.NormalizationVersion != "v1" && input.NormalizationVersion != "v2" {
+		return cloudImportConfigurationError("%s.normalizationVersion must be v1 or v2", path)
+	}
+	if !hasCloudImportText(input.Provider, 120) {
+		return cloudImportConfigurationError("%s.provider must contain 1 to 120 characters", path)
+	}
+	if input.RequestedDepth != nil && *input.RequestedDepth != 10 && *input.RequestedDepth != 20 && *input.RequestedDepth != 50 && *input.RequestedDepth != 100 {
+		return cloudImportConfigurationError("%s.requestedDepth must be 10, 20, 50, 100, or null", path)
+	}
 	if input.CheckedAt.IsZero() {
 		return cloudImportConfigurationError("%s.checkedAt is required", path)
 	}
@@ -778,6 +811,9 @@ func validateCloudImportAlertRule(input CloudImportAlertRule, path string) error
 }
 
 func validateCloudImportAlertRuleFields(input CloudImportAlertRule, path string) error {
+	if input.Severity != "" && input.Severity != "info" && input.Severity != "warning" && input.Severity != "urgent" {
+		return cloudImportConfigurationError("%s.severity must be info, warning, or urgent", path)
+	}
 	if err := requirePublicID(input.ID, path+".id", PublicIDPrefixRule); err != nil {
 		return err
 	}
@@ -863,8 +899,12 @@ func validateCloudImportKeywordAlertTarget(input CloudImportKeywordAlertTarget, 
 	if input.Keyword != "" && !hasCloudImportText(input.Keyword, 180) {
 		return cloudImportConfigurationError("%s.keyword must contain 1 to 180 characters", path)
 	}
-	if input.Location != "" && !isCloudImportLocation(input.Location) {
-		return cloudImportConfigurationError(cloudImportLocationValidationError, path)
+	if input.Location != "" {
+		if err := validateCloudImportLocationIdentity(input.Location, input.LocationKey, path); err != nil {
+			return err
+		}
+	} else if input.LocationKey != "" && !hasCloudImportText(input.LocationKey, 260) {
+		return cloudImportConfigurationError("%s.location_key must contain 1 to 260 characters", path)
 	}
 	return nil
 }
@@ -910,6 +950,9 @@ func validateCloudImportSessionTotals(input CloudImportSessionTotals, path strin
 }
 
 func validateCloudImportSessionCreate(input CloudImportSessionCreate, path string) error {
+	if version := cloudImportVersion(input.Version); version != 6 && version != 7 {
+		return cloudImportConfigurationError("%s.version must be 6 or 7", path)
+	}
 	if input.ChunkCount < 1 || input.ChunkCount > 500 {
 		return cloudImportConfigurationError("%s.chunk_count must be between 1 and 500", path)
 	}
@@ -943,8 +986,8 @@ func validateCloudImportSourceKeyword(input CloudImportSourceKeyword, path strin
 	if !isCloudImportDevice(input.Device) {
 		return cloudImportConfigurationError(cloudImportDeviceValidationError, path)
 	}
-	if !isCloudImportLocation(input.Location) {
-		return cloudImportConfigurationError(cloudImportLocationValidationError, path)
+	if err := validateCloudImportLocationIdentity(input.Location, input.LocationKey, path); err != nil {
+		return err
 	}
 	return nil
 }
@@ -1087,4 +1130,20 @@ func isCloudImportDomain(value string) bool {
 
 func cloudImportConfigurationError(format string, values ...any) error {
 	return &ConfigurationError{Message: fmt.Sprintf(format, values...) + "."}
+}
+
+func validateCloudImportLocationIdentity(location, key, path string) error {
+	if key == "" {
+		if !isCloudImportLocation(location) {
+			return cloudImportConfigurationError(cloudImportLocationValidationError, path)
+		}
+		return nil
+	}
+	if !hasCloudImportText(key, 260) {
+		return cloudImportConfigurationError("%s.location_key must contain 1 to 260 characters", path)
+	}
+	if !hasCloudImportText(location, 240) {
+		return cloudImportConfigurationError("%s.location must contain 1 to 240 characters", path)
+	}
+	return nil
 }

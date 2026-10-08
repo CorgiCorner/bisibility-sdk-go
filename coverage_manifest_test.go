@@ -11,6 +11,18 @@ import (
 const skipCoverageOperation = ""
 
 var clientMethodOperationIDs = map[string]string{
+	"IterateAgentReports":  skipCoverageOperation,
+	"GetProjectContext":    "getProjectContext",
+	"UpdateProjectContext": "updateProjectContext",
+	"ListAgentReports":     "listAgentReports",
+	"CreateAgentReport":    "createAgentReport",
+	"GetAgentReport":       "getAgentReport",
+	"ListSiteAudits":       "listSiteAudits",
+	"RunSiteAudit":         "runSiteAudit",
+	"GetSiteAudit":         "getSiteAudit",
+	"AnalyzeAIVisibility":  "analyzeAiVisibility",
+	"CompareAIPrompts":     "compareAiPrompts",
+
 	"ListStoredResearchReports": "listStoredResearchReports",
 	"GetStoredResearchReport":   "getStoredResearchReport",
 	"ListProviderBudgets":       "listProviderBudgets",

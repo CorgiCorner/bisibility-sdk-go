@@ -247,3 +247,227 @@ func (p ProviderBudgetsUpdate) validate() error {
 	}
 	return nil
 }
+
+// AgentReportSummary describes the API response.
+type AgentReportSummary struct {
+	CreatedAt string `json:"created_at"`
+	ID        string `json:"id"`
+	Kind      string `json:"kind"`
+	Title     string `json:"title"`
+}
+
+// AgentReportResource describes the API response.
+type AgentReportResource struct {
+	Body       map[string]any `json:"body"`
+	CreatedAt  string         `json:"created_at"`
+	ID         string         `json:"id"`
+	Kind       string         `json:"kind"`
+	Provenance map[string]any `json:"provenance"`
+	Title      string         `json:"title"`
+}
+
+// ProjectContext describes the API response.
+type ProjectContext struct {
+	AgentRules string  `json:"agent_rules"`
+	Audience   string  `json:"audience"`
+	Business   string  `json:"business"`
+	Goals      string  `json:"goals"`
+	Products   string  `json:"products"`
+	UpdatedAt  *string `json:"updated_at"`
+}
+
+// SiteAuditLimits describes the API response.
+type SiteAuditLimits struct {
+	MaxDurationMS float64 `json:"max_duration_ms"`
+	MaxPageBytes  float64 `json:"max_page_bytes"`
+	MaxPages      float64 `json:"max_pages"`
+	MaxRequests   float64 `json:"max_requests"`
+}
+
+// SiteAuditHeading describes the API response.
+type SiteAuditHeading struct {
+	Level int    `json:"level"`
+	Text  string `json:"text"`
+}
+
+// SiteAuditIssue describes the API response.
+type SiteAuditIssue struct {
+	Code     string `json:"code"`
+	Message  string `json:"message"`
+	Severity string `json:"severity"`
+}
+
+// SiteAuditPage describes the API response.
+type SiteAuditPage struct {
+	Canonical         *string            `json:"canonical"`
+	Description       *string            `json:"description"`
+	ExternalLinkCount float64            `json:"external_link_count"`
+	FinalURL          string             `json:"final_url"`
+	H1Count           float64            `json:"h1_count"`
+	Headings          []SiteAuditHeading `json:"headings"`
+	ImageCount        float64            `json:"image_count"`
+	Indexable         bool               `json:"indexable"`
+	InternalLinkCount float64            `json:"internal_link_count"`
+	InternalLinks     []string           `json:"internal_links"`
+	Issues            []SiteAuditIssue   `json:"issues"`
+	MissingAltCount   float64            `json:"missing_alt_count"`
+	ResponseTimeMS    float64            `json:"response_time_ms"`
+	Robots            *string            `json:"robots"`
+	Status            *int               `json:"status"`
+	Title             *string            `json:"title"`
+	URL               string             `json:"url"`
+}
+
+// SiteAuditSummary describes the API response.
+type SiteAuditSummary struct {
+	Errors    float64 `json:"errors"`
+	Indexable float64 `json:"indexable"`
+	Pages     float64 `json:"pages"`
+	Warnings  float64 `json:"warnings"`
+}
+
+// SiteAuditResult describes the API response.
+type SiteAuditResult struct {
+	CompletedAt string           `json:"completed_at"`
+	Limitations []string         `json:"limitations"`
+	Limits      SiteAuditLimits  `json:"limits"`
+	Pages       []SiteAuditPage  `json:"pages"`
+	Requests    float64          `json:"requests"`
+	StartedAt   string           `json:"started_at"`
+	State       string           `json:"state"`
+	StopReason  string           `json:"stop_reason"`
+	Summary     SiteAuditSummary `json:"summary"`
+	Target      string           `json:"target"`
+	Version     int              `json:"version"`
+}
+
+// SiteAuditReport describes the API response.
+type SiteAuditReport struct {
+	Cached    bool            `json:"cached"`
+	CreatedAt string          `json:"created_at"`
+	ID        string          `json:"id"`
+	Result    SiteAuditResult `json:"result"`
+}
+
+// AIAnalysisCitation describes the API response.
+type AIAnalysisCitation struct {
+	TargetDomain bool   `json:"target_domain"`
+	Title        string `json:"title"`
+	URL          string `json:"url"`
+}
+
+// AIAnalysisRow describes the API response.
+type AIAnalysisRow struct {
+	Answer           string               `json:"answer"`
+	BrandMentioned   bool                 `json:"brand_mentioned"`
+	Citations        []AIAnalysisCitation `json:"citations"`
+	ContentTruncated bool                 `json:"content_truncated,omitempty"`
+	DomainCited      bool                 `json:"domain_cited"`
+	Model            string               `json:"model"`
+	ObservedAt       *string              `json:"observed_at"`
+	Prompt           string               `json:"prompt"`
+}
+
+// AIAnalysisResult describes the API response.
+type AIAnalysisResult struct {
+	CostCents      float64         `json:"cost_cents"`
+	CostStatus     string          `json:"cost_status"`
+	Evidence       string          `json:"evidence"`
+	Failure        *string         `json:"failure"`
+	FetchedAt      string          `json:"fetched_at"`
+	Rows           []AIAnalysisRow `json:"rows"`
+	TotalAvailable *int            `json:"total_available"`
+	Truncated      bool            `json:"truncated"`
+}
+
+// ListAgentReportsOptions selects a report kind and cursor page.
+type ListAgentReportsOptions struct {
+	Cursor string `json:"cursor,omitempty"`
+	Kind   string `json:"kind,omitempty"`
+	Limit  int    `json:"limit,omitempty"`
+}
+
+// CreateAgentReportInput saves external analysis while preserving producer JSON keys.
+type CreateAgentReportInput struct {
+	Kind       string         `json:"kind"`
+	Title      string         `json:"title"`
+	Body       map[string]any `json:"body"`
+	Provenance map[string]any `json:"provenance,omitempty"`
+}
+
+// ProjectContextInput replaces the project's guidance fields.
+type ProjectContextInput struct {
+	Business   string `json:"business"`
+	Audience   string `json:"audience"`
+	Products   string `json:"products"`
+	Goals      string `json:"goals"`
+	AgentRules string `json:"agent_rules"`
+}
+
+// RunSiteAuditOptions sets the bounded crawl size.
+type RunSiteAuditOptions struct {
+	MaxPages int `json:"max_pages,omitempty"`
+}
+
+// AIResearchInput requires an explicit provider cost cap in cents.
+type AIResearchInput struct {
+	Brand        string `json:"brand"`
+	Domain       string `json:"domain"`
+	MaxCostCents int    `json:"max_cost_cents"`
+	EstimateOnly bool   `json:"estimate_only,omitempty"`
+	Fresh        bool   `json:"fresh,omitempty"`
+}
+
+// AnalyzeAIVisibilityOptions selects an observed provider dataset.
+type AnalyzeAIVisibilityOptions struct {
+	AIResearchInput
+	LanguageCode string `json:"language_code,omitempty"`
+	Limit        int    `json:"limit,omitempty"`
+	LocationCode int64  `json:"location_code,omitempty"`
+	Platform     string `json:"platform,omitempty"`
+	TargetType   string `json:"target_type,omitempty"`
+}
+
+// CompareAIPromptsOptions selects a synthetic prompt and bounded model list.
+type CompareAIPromptsOptions struct {
+	AIResearchInput
+	Prompt string   `json:"prompt"`
+	Models []string `json:"models,omitempty"`
+}
+
+// AIAnalysisOutcome distinguishes an estimate from a saved analysis report.
+type AIAnalysisOutcome struct {
+	OK                 bool              `json:"ok"`
+	Estimate           bool              `json:"estimate"`
+	EstimatedCostCents *float64          `json:"estimated_cost_cents,omitempty"`
+	Evidence           string            `json:"evidence,omitempty"`
+	Cached             *bool             `json:"cached,omitempty"`
+	ReportID           *string           `json:"report_id,omitempty"`
+	CostCents          *float64          `json:"cost_cents,omitempty"`
+	Result             *AIAnalysisResult `json:"result,omitempty"`
+}
+
+func (outcome *AIAnalysisOutcome) UnmarshalJSON(data []byte) error {
+	type wire AIAnalysisOutcome
+	var value wire
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	var estimate *bool
+	if err := json.Unmarshal(fields["estimate"], &estimate); err != nil || estimate == nil || !value.OK {
+		return fmt.Errorf("AI analysis must include ok:true and a boolean estimate discriminator")
+	}
+	if value.Estimate {
+		if value.EstimatedCostCents == nil || (value.Evidence != "observed_dataset" && value.Evidence != "synthetic_prompt_test") {
+			return fmt.Errorf("AI estimate is incomplete")
+		}
+	} else if value.Cached == nil || value.ReportID == nil || value.CostCents == nil || value.Result == nil {
+		return fmt.Errorf("AI analysis report is incomplete")
+	}
+	*outcome = AIAnalysisOutcome(value)
+	return nil
+}

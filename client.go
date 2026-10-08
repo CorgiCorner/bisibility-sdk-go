@@ -1,5 +1,4 @@
-// Package bisibility provides a Go client for the Bisibility API, including
-// SEO rank tracking, keywords, and ranking history.
+// Package bisibility provides a Go client for the Bisibility API.
 package bisibility
 
 import (
@@ -26,7 +25,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.12.0"
+const Version = "0.13.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -484,15 +483,12 @@ func (c *Client) RankHistory(ctx context.Context, keywordID string, filters *Lis
 	return c.ListRankChecks(ctx, keywordID, filters, options...)
 }
 
-// RunRankCheck runs an immediate rank check for one keyword. When
-// input.Async is true the check is enqueued with ?async=true and the API
-// responds 202 with a RankCheck in status running.
 // RunRankCheck requests a rank check. How it executes belongs to the deployment: where a background
 // worker owns execution the server answers 202 with the queued run, and where checks run inline it
 // answers 201 with the finished check. Input.Async is kept for compatibility and changes nothing.
 func (c *Client) RunRankCheck(ctx context.Context, keywordID string, input *RunRankCheckInput, options ...RequestOption) (*RunRankCheckResult, error) {
 	config := newRequestConfig(options...)
-	if input != nil && input.ProviderID != "" {
+	if input != nil && (input.ProviderID != "" || input.MaxCostCents != 0 || input.MaxCostCentsOverride != nil) {
 		config.body = input
 	}
 	if input != nil && input.Async {
@@ -568,7 +564,7 @@ func (c *Client) RunRankCheckAndWait(ctx context.Context, keywordID string, inpu
 		}
 		if history != nil {
 			for index := range history.Data {
-				if history.Data[index].RunID == runID {
+				if history.Data[index].RunID == runID && (history.Data[index].Status == "completed" || history.Data[index].Status == "failed") {
 					return &history.Data[index], nil
 				}
 			}
@@ -579,7 +575,7 @@ func (c *Client) RunRankCheckAndWait(ctx context.Context, keywordID string, inpu
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(interval):
+		case <-time.After(min(interval, time.Until(deadline))):
 		}
 	}
 }

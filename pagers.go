@@ -202,3 +202,20 @@ func (c *Client) IterateMigrationTokens(ctx context.Context, projectID string, p
 }
 
 func ptr[T any](value T) *T { return &value }
+
+// IterateAgentReports follows cursor pages while preserving the report kind filter.
+func (c *Client) IterateAgentReports(ctx context.Context, projectID string, filters *ListAgentReportsOptions, options ...RequestOption) *Pager[AgentReportSummary] {
+	initial := ListAgentReportsOptions{}
+	if filters != nil {
+		initial = *filters
+	}
+	return newPager(ctx, initial.Cursor, func(ctx context.Context, cursor string) ([]AgentReportSummary, *string, error) {
+		pageFilters := initial
+		pageFilters.Cursor = cursor
+		page, err := c.ListAgentReports(ctx, projectID, &pageFilters, options...)
+		if err != nil {
+			return nil, nil, err
+		}
+		return page.Data, page.Meta.NextCursor, nil
+	})
+}

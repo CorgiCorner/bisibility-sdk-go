@@ -599,15 +599,28 @@ type ListRankChecksOptions struct {
 	Until  time.Time
 }
 
-// RunRankCheckInput selects an optional provider for an immediate rank check.
-// Set Async to enqueue the check instead of waiting for the result: the API
-// responds 202 with a RankCheck in status running. Poll GetRankCheckResult
-// until the status becomes completed or failed.
+// RunRankCheckInput selects an optional provider and cost ceiling. The deployment
+// chooses inline execution or a 202 response containing a queued rcr_ run.
+// Async remains for compatibility and does not control server execution.
+// RunRankCheckAndWait follows a queued run to its matching terminal check.
 type RunRankCheckInput struct {
 	// MaxCostCents is a server-enforced ceiling for the preflight estimate of this check, in cents.
-	MaxCostCents int    `json:"max_cost_cents,omitempty"`
-	ProviderID   string `json:"provider_id,omitempty"`
-	Async        bool   `json:"-"`
+	MaxCostCents int `json:"max_cost_cents,omitempty"`
+	// MaxCostCentsOverride takes precedence over MaxCostCents, including an explicit zero ceiling.
+	MaxCostCentsOverride *int   `json:"-"`
+	ProviderID           string `json:"provider_id,omitempty"`
+	Async                bool   `json:"-"`
+}
+
+func (input RunRankCheckInput) MarshalJSON() ([]byte, error) {
+	ceiling := input.MaxCostCentsOverride
+	if ceiling == nil && input.MaxCostCents != 0 {
+		ceiling = &input.MaxCostCents
+	}
+	return json.Marshal(struct {
+		MaxCostCents *int   `json:"max_cost_cents,omitempty"`
+		ProviderID   string `json:"provider_id,omitempty"`
+	}{ceiling, input.ProviderID})
 }
 
 // HealthResponse is returned by GetHealth.

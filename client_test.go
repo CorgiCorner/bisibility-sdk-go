@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1448,8 +1449,8 @@ func TestUserAgentHeader(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.12.0" {
-				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.12.0")
+			if got := r.Header.Get("User-Agent"); got != "bisibility-sdk-go/0.13.0" {
+				t.Fatalf("User-Agent = %q, want %q", got, "bisibility-sdk-go/0.13.0")
 			}
 			if got := r.Header.Get("X-Bisibility-Client"); got != "bisibility-sdk-go/"+Version {
 				t.Fatalf("X-Bisibility-Client = %q, want %q", got, "bisibility-sdk-go/"+Version)
@@ -1775,7 +1776,9 @@ func TestRunRankCheckAndWait(t *testing.T) {
 			case 1:
 				writeJSON(t, w, http.StatusAccepted, queuedRankCheckRunJSON("rcr_b00000000000000000000000"))
 			case 2:
-				writeJSON(t, w, http.StatusOK, map[string]any{"data": []any{}, "meta": map[string]any{}})
+				running := runningRankCheckJSON("check_b00000000000000000000000")
+				running["run_id"] = "rcr_b00000000000000000000000"
+				writeJSON(t, w, http.StatusOK, map[string]any{"data": []any{running}, "meta": map[string]any{}})
 			default:
 				check := runningRankCheckJSON("check_b00000000000000000000000")
 				check["run_id"] = "rcr_b00000000000000000000000"
@@ -1910,4 +1913,107 @@ func mustTime(value string) time.Time {
 
 func strPtr(value string) *string {
 	return &value
+}
+
+func TestRunRankCheckAndWaitFailedAndCancelled(t *testing.T) {
+	for _, terminal := range []string{"failed", "cancelled"} {
+		t.Run(terminal, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			calls := 0
+			client, err := NewClient(WithBaseURL("https://api.example.com/api/v1"), WithAPIKey(testAPIKey), WithHTTPClient(&http.Client{
+				Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+					calls++
+					status := http.StatusOK
+					var payload any
+					if request.Method == http.MethodPost {
+						status = http.StatusAccepted
+						payload = queuedRankCheckRunJSON("rcr_b00000000000000000000000")
+					} else {
+						check := runningRankCheckJSON("check_b00000000000000000000000")
+						check["run_id"] = "rcr_b00000000000000000000000"
+						if calls > 2 {
+							check["status"] = terminal
+						}
+						payload = map[string]any{"data": []any{check}, "meta": map[string]any{}}
+						if terminal == "cancelled" {
+							cancel()
+						}
+					}
+					body, err := json.Marshal(payload)
+					if err != nil {
+						return nil, err
+					}
+					return &http.Response{StatusCode: status, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(string(body))), Request: request}, nil
+				}),
+			}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			check, err := client.RunRankCheckAndWait(ctx, "kw_a00000000000000000000000", nil, &WaitForRankCheckOptions{PollInterval: time.Millisecond})
+			if terminal == "cancelled" {
+				if !errors.Is(err, context.Canceled) {
+					t.Fatalf("error = %v, want cancellation", err)
+				}
+				assertEqual(t, calls, 2)
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				assertEqual(t, check.Status, "failed")
+				assertEqual(t, calls, 3)
+			}
+		})
+	}
+}
+
+func TestRunRankCheckPreservesCostCap(t *testing.T) {
+	zero := 0
+	two := 2
+	for _, test := range []struct {
+		name  string
+		input *RunRankCheckInput
+		body  string
+	}{
+		{"cost cap only", &RunRankCheckInput{MaxCostCents: 5}, `{"max_cost_cents":5}`},
+		{"provider and cost cap", &RunRankCheckInput{MaxCostCents: 5, ProviderID: "dataforseo"}, `{"max_cost_cents":5,"provider_id":"dataforseo"}`},
+		{"provider only", &RunRankCheckInput{ProviderID: "dataforseo"}, `{"provider_id":"dataforseo"}`},
+		{"zero cap only", &RunRankCheckInput{MaxCostCentsOverride: &zero}, `{"max_cost_cents":0}`},
+		{"zero overrides positive cap", &RunRankCheckInput{MaxCostCents: 5, MaxCostCentsOverride: &zero, ProviderID: "dataforseo"}, `{"max_cost_cents":0,"provider_id":"dataforseo"}`},
+		{"positive override", &RunRankCheckInput{MaxCostCents: 5, MaxCostCentsOverride: &two}, `{"max_cost_cents":2}`},
+		{"nil input", nil, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			calls := 0
+			client, err := NewClient(WithBaseURL("https://api.example.com/api/v1"), WithAPIKey(testAPIKey), WithHTTPClient(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				calls++
+				body := ""
+				if r.Body != nil {
+					data, err := io.ReadAll(r.Body)
+					if err != nil {
+						t.Fatal(err)
+					}
+					body = string(data)
+				}
+				assertEqual(t, body, test.body)
+				assertEqual(t, r.Method, http.MethodPost)
+				assertEqual(t, r.URL.Path, "/api/v1/keywords/kw_a00000000000000000000000/checks")
+				if test.input == nil {
+					assertEqual(t, r.Header.Get("Content-Type"), "")
+				} else {
+					assertEqual(t, r.Header.Get("Content-Type"), "application/json")
+				}
+				return &http.Response{StatusCode: http.StatusAccepted, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"id":"rcr_a00000000000000000000000","status":"queued"}`)), Request: r}, nil
+			})}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := client.RunRankCheck(context.Background(), "kw_a00000000000000000000000", test.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertEqual(t, result.IsQueued(), true)
+			assertEqual(t, calls, 1)
+		})
+	}
 }

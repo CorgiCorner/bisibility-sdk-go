@@ -1,14 +1,14 @@
 # Bisibility Go SDK
 
-> Part of [bisibility](https://github.com/CorgiCorner/bisibility) - open-source keyword
-> rank tracking you can self-host and automate. This repository contains the Go SDK for
+> Part of [bisibility](https://github.com/CorgiCorner/bisibility) - open-source SEO platform
+> you can self-host and automate. This repository contains the Go SDK for
 > the Bisibility REST API.
 >
 > [Docs](https://bisibility.com/docs) ·
 > [API reference](https://bisibility.com/docs/api/overview) ·
 > [Roadmap](https://bisibility.com/roadmap)
 >
-> **Status:** Published as v0.12.0.
+> Current versions are listed in the [module release tags](https://github.com/CorgiCorner/bisibility-sdk-go/tags).
 
 Idiomatic Go client for the Bisibility REST API.
 
@@ -107,13 +107,13 @@ and webhook CRUD.
 
 ### Public identifiers
 
-All typed resource IDs accepted by client methods are strict public ID v3 values:
+All typed resource IDs accepted by client methods are strict typed public IDs:
 `prefix_[a-z][a-z0-9]{23}`. The SDK rejects raw database IDs, legacy IDs, and
 mixed-case values before it sends an HTTP request. Use `ValidatePublicID` or
 `ValidatePublicIDPrefix` when validating values before calling the client.
 
-The registered namespaces are `al`, `alr`, `audit`, `check`, `cmp`, `conn`, `dwh`, `ferry`,
-`imp`, `inv`, `key`, `kw`, `mbr`, `ntf`, `pat`, `prj`, `sid`, `sig`, `svkw`, `tag`, `usr`,
+The SDK namespaces are `agr`, `al`, `alr`, `audit`, `check`, `cmp`, `conn`, `dwh`, `ferry`,
+`imp`, `inv`, `key`, `kw`, `mbr`, `ntf`, `pat`, `prj`, `rcr`, `sid`, `sig`, `svkw`, `tag`, `usr`,
 `viw`, and `we`. Provider IDs and `location_key` values are not public resource IDs.
 Migration-token secrets are credentials, while `ferry_` identifies the migration-token resource.
 
@@ -162,6 +162,11 @@ check, err := client.RunRankCheckAndWait(ctx, keywordID, nil, &bisibility.WaitFo
 
 `RunRankCheckInput.Async` is retained for compatibility and no longer changes
 what the server does.
+
+`RunRankCheckInput.MaxCostCents` sends a ceiling without
+a `ProviderID`. `MaxCostCentsOverride` takes an optional `*int`, takes precedence,
+and can send an explicit zero ceiling. Existing provider-only requests omit the
+ceiling.
 
 ### Public cost estimates
 
@@ -328,8 +333,7 @@ operations as RFC problem responses; partial analysis reports keep typed success
 outcomes on their nested keyword and page modules. Decode `APIError.Problem.Errors` into
 `DomainOverviewProblemErrors` when callers need the failure reason, charged cost, or reset time.
 
-A full domain overview costs roughly 6 cents at current DataForSEO rates; estimate first, and call
-`GetProviderRates` or `GetCostEstimate` for the authoritative numbers.
+Use `AnalyzeDomainOverview` with `EstimateOnly: true` for the current feature estimate.
 
 ### Backlinks
 
@@ -372,8 +376,8 @@ if analysis.Data.Snapshot != nil {
 }
 ```
 
-A 100-row site analysis costs roughly 7 cents at current DataForSEO rates; call
-`GetProviderRates` or `GetCostEstimate` for the authoritative numbers. `LoadMoreBacklinkRows`
+Use `AnalyzeBacklinks` with `EstimateOnly: true` for the current feature estimate.
+`LoadMoreBacklinkRows`
 appends paid rows to an unexpired snapshot and always returns a `BacklinksSnapshotResponse`,
 never an estimate.
 
@@ -506,10 +510,22 @@ returns `ListCompetitorsResponse` with markets and suggestions, and
 `ListMigrationTokens` returns `ListMigrationTokensResponse` with import job
 status.
 
+Typed methods cover project context, agent reports, AI visibility,
+prompt comparison, and site audits. Agent reports use strict `agr_` IDs;
+`IterateAgentReports` preserves report-kind filters across v3 cursor pages. AI methods
+require `MaxCostCents` and distinguish cost estimates from saved results.
+
 Cloud-import writes authenticate with a migration token minted by
 `MintMigrationToken`, passed as the first argument rather than through the
 client API key. `GetCloudImportCompatibility` is an unauthenticated preflight.
-The SDK supports only protocol version 5 and writes that discriminator itself.
+The client supports package versions 6 and 7; `Version` defaults to 7 when zero.
+Version 7 requires `LocationKey` for every package keyword, while version 6 uses
+legacy market names without that field. Both versions require history rows to carry
+`NormalizationVersion`, `Provider`, `RequestedDepth`, `Position`, `PreviousPosition`,
+and `RankingURL` alongside `CheckedAt`. Nullable values remain explicit JSON nulls.
+Version 5 is accepted only without ranking history. Sessions require version 6 or 7.
+Compatibility discovery returns the integer versions advertised by the server, even
+if this SDK cannot send them yet.
 `CloudImportPackage` requires `project_id` plus non-nil `keywords`,
 `alert_rules`, `competitors`, `notification_preferences`, and `saved_views`
 collections. `CreateCloudImportSession` requires a strict `source_project_id`.
@@ -540,6 +556,7 @@ _, err = client.UploadCloudImportChunk(ctx, migrationToken, session.SessionID, 0
 		Keyword:  "rank tracker",
 		Device:   bisibility.DeviceDesktop,
 		Location: "United States",
+        LocationKey: "US",
 	}},
 })
 if err != nil {

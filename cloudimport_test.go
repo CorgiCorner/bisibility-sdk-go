@@ -23,6 +23,7 @@ func cloudImportID(prefix PublicIDPrefix) string {
 
 func validCloudImportPackage() CloudImportPackage {
 	return CloudImportPackage{
+		Version: 7,
 		AlertRules: []CloudImportAlertRule{{
 			ID:   cloudImportID(PublicIDPrefixRule),
 			Name: "Position drop",
@@ -35,10 +36,11 @@ func validCloudImportPackage() CloudImportPackage {
 			ID:     cloudImportID(PublicIDPrefixComp),
 		}},
 		Keywords: []CloudImportKeyword{{
-			Device:   DeviceDesktop,
-			ID:       cloudImportID(PublicIDPrefixKeyword),
-			Keyword:  "rank tracker",
-			Location: "United States",
+			Device:      DeviceDesktop,
+			ID:          cloudImportID(PublicIDPrefixKeyword),
+			Keyword:     "rank tracker",
+			Location:    "United States",
+			LocationKey: "US",
 		}},
 		NotificationPreferences: []CloudImportNotificationPreference{{}},
 		ProjectID:               cloudImportID(PublicIDPrefixProject),
@@ -52,13 +54,14 @@ func validCloudImportPackage() CloudImportPackage {
 
 func validCloudImportSessionCreate() CloudImportSessionCreate {
 	return CloudImportSessionCreate{
+		Version:         7,
 		ChunkCount:      2,
 		SourceProjectID: cloudImportID(PublicIDPrefixProject),
 		Totals:          &CloudImportSessionTotals{Keywords: 10, RankChecks: 100},
 	}
 }
 
-func TestGetCloudImportCompatibilityV5(t *testing.T) {
+func TestGetCloudImportCompatibilityV7(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +89,7 @@ func TestGetCloudImportCompatibilityV5(t *testing.T) {
 	}
 }
 
-func TestGetCloudImportCompatibilityRejectsV4Response(t *testing.T) {
+func TestGetCloudImportCompatibilityAcceptsOlderServerVersion(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -99,12 +102,12 @@ func TestGetCloudImportCompatibilityRejectsV4Response(t *testing.T) {
 	defer server.Close()
 
 	_, err := newTestClient(t, server.URL+"/api/v1").GetCloudImportCompatibility(context.Background())
-	if err == nil {
-		t.Fatal("expected v4 compatibility response to fail")
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
-func TestImportCloudExportWritesExactV5Package(t *testing.T) {
+func TestImportCloudExportWritesExactV7Package(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -113,10 +116,10 @@ func TestImportCloudExportWritesExactV5Package(t *testing.T) {
 		assertEqual(t, captured.Path, "/api/v1/cloud/import")
 		assertEqual(t, captured.Header.Get("Authorization"), "Bearer "+testMigrationToken)
 		assertJSONEqual(t, captured.Body, fmt.Sprintf(`{
-			"version":5,
+			"version":7,
 			"project_id":%q,
 			"scope":"current",
-			"keywords":[{"id":%q,"keyword":"rank tracker","device":"desktop","location":"United States"}],
+			"keywords":[{"id":%q,"keyword":"rank tracker","device":"desktop","location":"United States","location_key":"US"}],
 			"alert_rules":[{"id":%q,"name":"Position drop","targets":[{"keyword_id":%q,"type":"keyword"}]}],
 			"competitors":[{"id":%q,"domain":"example.com"}],
 			"notification_preferences":[{}],
@@ -140,7 +143,7 @@ func TestImportCloudExportWritesExactV5Package(t *testing.T) {
 	assertEqual(t, response.State, CloudImportStateDone)
 }
 
-func TestImportCloudExportRejectsInvalidV5PackageBeforeRequest(t *testing.T) {
+func TestImportCloudExportRejectsInvalidV7PackageBeforeRequest(t *testing.T) {
 	t.Parallel()
 
 	requests := 0
@@ -168,14 +171,14 @@ func TestImportCloudExportRejectsInvalidV5PackageBeforeRequest(t *testing.T) {
 	}
 }
 
-func TestCreateCloudImportSessionWritesV5SourceProject(t *testing.T) {
+func TestCreateCloudImportSessionWritesV7SourceProject(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		captured := captureRequest(t, r)
 		assertEqual(t, captured.Method, http.MethodPost)
 		assertEqual(t, captured.Path, "/api/v1/cloud/import/sessions")
-		assertJSONEqual(t, captured.Body, fmt.Sprintf(`{"version":5,"chunk_count":2,"source_project_id":%q,"totals":{"keywords":10,"rank_checks":100}}`, cloudImportID(PublicIDPrefixProject)))
+		assertJSONEqual(t, captured.Body, fmt.Sprintf(`{"version":7,"chunk_count":2,"source_project_id":%q,"totals":{"keywords":10,"rank_checks":100}}`, cloudImportID(PublicIDPrefixProject)))
 		writeJSON(t, w, http.StatusCreated, map[string]any{
 			"session_id": cloudImportID(PublicIDPrefixJob),
 			"state":      "receiving",
@@ -242,7 +245,7 @@ func TestUploadCloudImportChunksUseImportPathAndDiscriminatedBodies(t *testing.T
 		captured := captureRequest(t, r)
 		assertEqual(t, captured.Method, http.MethodPut)
 		assertEqual(t, captured.Path, "/api/v1/cloud/import/sessions/"+cloudImportID(PublicIDPrefixJob)+"/chunks/0")
-		assertJSONEqual(t, captured.Body, fmt.Sprintf(`{"checksum":%q,"kind":"keywords","keywords":[{"id":%q,"keyword":"rank tracker","device":"desktop","location":"United States"}]}`, cloudImportChecksum, cloudImportID(PublicIDPrefixKeyword)))
+		assertJSONEqual(t, captured.Body, fmt.Sprintf(`{"checksum":%q,"kind":"keywords","keywords":[{"id":%q,"keyword":"rank tracker","device":"desktop","location":"United States","location_key":"US"}]}`, cloudImportChecksum, cloudImportID(PublicIDPrefixKeyword)))
 		writeJSON(t, w, http.StatusOK, map[string]any{"state": "receiving", "chunks_received": 1, "chunk_count": 2})
 	}))
 	defer server.Close()
@@ -288,19 +291,19 @@ func TestFinalizeCloudImportSessionUsesImportPath(t *testing.T) {
 	assertEqual(t, response.JobID, cloudImportID(PublicIDPrefixJob))
 }
 
-func TestCloudImportV5JSONRejectsLegacyAndIncompleteShapes(t *testing.T) {
+func TestCloudImportV7JSONRejectsLegacyAndIncompleteShapes(t *testing.T) {
 	t.Parallel()
 
 	valid := fmt.Sprintf(`{
-		"version":5,"project_id":%q,"keywords":[{"id":%q,"keyword":"rank tracker","device":"desktop","location":"United States"}],
+		"version":7,"project_id":%q,"keywords":[{"id":%q,"keyword":"rank tracker","device":"desktop","location":"United States","location_key":"US"}],
 		"alert_rules":[],"competitors":[],"notification_preferences":[],"saved_views":[]
 	}`, cloudImportID(PublicIDPrefixProject), cloudImportID(PublicIDPrefixKeyword))
 
 	cases := map[string]string{
-		"v4":              stringsReplaceOnce(valid, `"version":5`, `"version":4`),
+		"v4":              stringsReplaceOnce(valid, `"version":7`, `"version":4`),
 		"camel project":   stringsReplaceOnce(valid, `"project_id"`, `"projectId"`),
-		"camel exported":  stringsReplaceOnce(valid, `"version":5`, `"version":5,"exportedAt":"2026-07-27T00:00:00Z"`),
-		"null exported":   stringsReplaceOnce(valid, `"version":5`, `"version":5,"exported_at":null`),
+		"camel exported":  stringsReplaceOnce(valid, `"version":7`, `"version":7,"exportedAt":"2026-07-27T00:00:00Z"`),
+		"null exported":   stringsReplaceOnce(valid, `"version":7`, `"version":7,"exported_at":null`),
 		"top-level ranks": stringsReplaceOnce(valid, `"saved_views":[]`, `"saved_views":[],"rank_checks":[]`),
 		"missing array":   stringsReplaceOnce(valid, `,"saved_views":[]`, ``),
 		"raw keyword id":  stringsReplaceOnce(valid, cloudImportID(PublicIDPrefixKeyword), `"1"`),
@@ -315,7 +318,7 @@ func TestCloudImportV5JSONRejectsLegacyAndIncompleteShapes(t *testing.T) {
 	}
 }
 
-func TestCloudImportV5JSONRejectsInvalidDiscriminatorsAndResponses(t *testing.T) {
+func TestCloudImportV7JSONRejectsInvalidDiscriminatorsAndResponses(t *testing.T) {
 	t.Parallel()
 
 	var rule CloudImportAlertRule
@@ -325,7 +328,7 @@ func TestCloudImportV5JSONRejectsInvalidDiscriminatorsAndResponses(t *testing.T)
 	}
 
 	var session CloudImportSessionCreate
-	err = json.Unmarshal([]byte(fmt.Sprintf(`{"version":5,"chunk_count":1,"source_project_id":%q,"sourceProjectId":%q}`, cloudImportID(PublicIDPrefixProject), cloudImportID(PublicIDPrefixProject))), &session)
+	err = json.Unmarshal([]byte(fmt.Sprintf(`{"version":7,"chunk_count":1,"source_project_id":%q,"sourceProjectId":%q}`, cloudImportID(PublicIDPrefixProject), cloudImportID(PublicIDPrefixProject))), &session)
 	if err == nil {
 		t.Fatal("expected camel session alias to fail")
 	}
@@ -337,7 +340,7 @@ func TestCloudImportV5JSONRejectsInvalidDiscriminatorsAndResponses(t *testing.T)
 	}
 }
 
-func TestCloudImportV5PublicTypeContract(t *testing.T) {
+func TestCloudImportV7PublicTypeContract(t *testing.T) {
 	t.Parallel()
 
 	var _ CloudImportUploadChunk = CloudImportKeywordsChunk{}
@@ -345,13 +348,13 @@ func TestCloudImportV5PublicTypeContract(t *testing.T) {
 	var _ CloudImportAlertRuleTarget = CloudImportKeywordAlertTarget{}
 	var _ CloudImportAlertRuleTarget = CloudImportTagAlertTarget{}
 
-	for _, field := range []string{"Version", "RankChecks"} {
+	for _, field := range []string{"RankChecks"} {
 		if _, ok := reflect.TypeOf(CloudImportPackage{}).FieldByName(field); ok {
 			t.Fatalf("CloudImportPackage retains legacy %s field", field)
 		}
 	}
-	if _, ok := reflect.TypeOf(CloudImportSessionCreate{}).FieldByName("Version"); ok {
-		t.Fatal("CloudImportSessionCreate retains legacy Version field")
+	if _, ok := reflect.TypeOf(CloudImportSessionCreate{}).FieldByName("Version"); !ok {
+		t.Fatal("CloudImportSessionCreate must expose Version")
 	}
 	if field, ok := reflect.TypeOf(CloudImportPackage{}).FieldByName("ProjectID"); !ok || field.Tag.Get("json") != "project_id" {
 		t.Fatal("CloudImportPackage.ProjectID must use project_id")
@@ -370,7 +373,7 @@ func TestCloudImportV5PublicTypeContract(t *testing.T) {
 	assertJSONEqual(t, string(sections), fmt.Sprintf(`{"checksum":%q,"kind":"sections","sections":{}}`, cloudImportChecksum))
 }
 
-func TestCloudImportPackageRoundTripUsesV5Protocol(t *testing.T) {
+func TestCloudImportPackageRoundTripUsesV7Protocol(t *testing.T) {
 	t.Parallel()
 
 	input := validCloudImportPackage()
@@ -379,8 +382,8 @@ func TestCloudImportPackageRoundTripUsesV5Protocol(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(body, []byte(`"version":5`)) || !bytes.Contains(body, []byte(`"exported_at"`)) {
-		t.Fatalf("v5 package JSON = %s", body)
+	if !bytes.Contains(body, []byte(`"version":7`)) || !bytes.Contains(body, []byte(`"exported_at"`)) {
+		t.Fatalf("v7 package JSON = %s", body)
 	}
 	var output CloudImportPackage
 	if err := json.Unmarshal(body, &output); err != nil {
@@ -391,7 +394,7 @@ func TestCloudImportPackageRoundTripUsesV5Protocol(t *testing.T) {
 	}
 }
 
-func TestCloudImportV5NestedJSONCodecs(t *testing.T) {
+func TestCloudImportV7NestedJSONCodecs(t *testing.T) {
 	t.Parallel()
 
 	position := 7
@@ -422,7 +425,7 @@ func TestCloudImportV5NestedJSONCodecs(t *testing.T) {
 		ThresholdPosition: &position,
 		TopN:              &position,
 	}
-	ranking := CloudImportRankingHistory{CheckedAt: checkedAt, Position: &position, PreviousPosition: &position, RankingURL: &url}
+	ranking := CloudImportRankingHistory{NormalizationVersion: "v2", Provider: "serpapi", CheckedAt: checkedAt, Position: &position, PreviousPosition: &position, RankingURL: &url}
 	keyword := CloudImportKeyword{
 		Device: DeviceDesktop, ID: cloudImportID(PublicIDPrefixKeyword), Keyword: "rank tracker", Location: "United States",
 		RankingHistory: []CloudImportRankingHistory{ranking}, Tags: []string{"priority"}, TargetURL: &url,
@@ -447,7 +450,7 @@ func TestCloudImportV5NestedJSONCodecs(t *testing.T) {
 	assertCloudImportJSONRoundTrip(t, preference)
 	assertCloudImportJSONRoundTrip(t, savedView)
 	assertCloudImportJSONRoundTrip(t, CloudImportSessionTotals{Keywords: 1, RankChecks: 2})
-	assertCloudImportJSONRoundTrip(t, CloudImportSessionCreate{ChunkCount: 1, SourceProjectID: cloudImportID(PublicIDPrefixProject), Totals: &CloudImportSessionTotals{}})
+	assertCloudImportJSONRoundTrip(t, CloudImportSessionCreate{Version: 7, ChunkCount: 1, SourceProjectID: cloudImportID(PublicIDPrefixProject), Totals: &CloudImportSessionTotals{}})
 	assertCloudImportJSONRoundTrip(t, CloudImportChunkLimits{MaxBodyBytes: 1, MaxHistoryRows: 1, MaxKeywords: 1})
 	assertCloudImportJSONRoundTrip(t, CloudImportSessionCreateResponse{ChunkLimits: CloudImportChunkLimits{MaxBodyBytes: 1, MaxHistoryRows: 1, MaxKeywords: 1}, SessionID: cloudImportID(PublicIDPrefixJob), State: CloudImportStateReceiving})
 	assertCloudImportJSONRoundTrip(t, CloudImportSourceKeyword{Device: DeviceDesktop, Location: "United States", Text: "rank tracker"})
@@ -483,3 +486,94 @@ func stringsReplaceOnce(value, old, replacement string) string {
 func timePtr(value time.Time) *time.Time { return &value }
 
 func float64Ptr(value float64) *float64 { return &value }
+
+func TestCloudImportCurrentVersions(t *testing.T) {
+	for _, version := range []int{6, 7} {
+		t.Run(fmt.Sprint(version), func(t *testing.T) {
+			locationKey := ""
+			if version == 7 {
+				locationKey = `,"location_key":"US/New York/New York"`
+			}
+			location := "United States"
+			if version == 7 {
+				location = "New York"
+			}
+			payload := fmt.Sprintf(`{"version":%d,"project_id":"prj_a00000000000000000000000",
+                "keywords":[{"id":"kw_a00000000000000000000000","keyword":"rank tracker",
+                "device":"desktop","location":%q%s,"rankingHistory":[{
+                "checkedAt":"2026-10-01T00:00:00Z","position":null,"previousPosition":4,
+                "rankingUrl":null,"provider":"serpapi","normalizationVersion":"v2","requestedDepth":20}]}],
+                "alert_rules":[{"id":"alr_a00000000000000000000000","name":"Drop","severity":"warning"}],"competitors":[],"notification_preferences":[],"saved_views":[]}`, version, location, locationKey)
+			var pkg CloudImportPackage
+			if err := json.Unmarshal([]byte(payload), &pkg); err != nil {
+				t.Fatal(err)
+			}
+			encoded, err := json.Marshal(pkg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertJSONEqual(t, string(encoded), payload)
+			var session CloudImportSessionCreate
+			if err := json.Unmarshal([]byte(fmt.Sprintf(`{"version":%d,"chunk_count":1,"source_project_id":"prj_a00000000000000000000000"}`, version)), &session); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestCloudImportCompatibilityAcceptsServerVersions(t *testing.T) {
+	var compatibility CloudImportCompatibility
+	if err := json.Unmarshal([]byte(`{"app_version":"1.0.0","latest_migration":null,"schema_versions_supported":[7,6,8]}`), &compatibility); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(compatibility.SchemaVersionsSupported, []int{7, 6, 8}) {
+		t.Fatal(compatibility)
+	}
+}
+
+func TestCloudImportRejectsAmbiguousLegacyHistory(t *testing.T) {
+	payload := `{"version":5,"project_id":"prj_a00000000000000000000000",
+        "keywords":[{"id":"kw_a00000000000000000000000","keyword":"rank tracker","device":"desktop","location":"United States",
+        "rankingHistory":[{"checkedAt":"2026-10-01T00:00:00Z","position":3}]}],
+        "alert_rules":[],"competitors":[],"notification_preferences":[],"saved_views":[]}`
+	var pkg CloudImportPackage
+	if err := json.Unmarshal([]byte(payload), &pkg); err == nil {
+		t.Fatal("legacy history must be rejected")
+	}
+}
+
+func TestCloudImportVersionGuards(t *testing.T) {
+	for name, mutate := range map[string]func(*CloudImportPackage){
+		"v7 without key":         func(p *CloudImportPackage) { p.Keywords[0].LocationKey = "" },
+		"v6 with key":            func(p *CloudImportPackage) { p.Version = 6 },
+		"future request version": func(p *CloudImportPackage) { p.Version = 8 },
+		"legacy history": func(p *CloudImportPackage) {
+			p.Version = 5
+			p.Keywords[0].LocationKey = ""
+			p.Keywords[0].RankingHistory = []CloudImportRankingHistory{{CheckedAt: time.Now(), NormalizationVersion: "v2", Provider: "serpapi"}}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			p := validCloudImportPackage()
+			mutate(&p)
+			if _, err := json.Marshal(p); err == nil {
+				t.Fatal("invalid package accepted")
+			}
+		})
+	}
+	for _, versions := range []string{`["7"]`, `[7.1]`, `[true]`, `[0]`, `[-1]`} {
+		var compatibility CloudImportCompatibility
+		if err := json.Unmarshal([]byte(`{"app_version":"1","latest_migration":null,"schema_versions_supported":`+versions+`}`), &compatibility); err == nil {
+			t.Fatal("non-integer version accepted")
+		}
+	}
+}
+
+func TestCloudImportLocationIdentityRoundTrip(t *testing.T) {
+	assertCloudImportJSONRoundTrip(t, CloudImportKeywordAlertTarget{KeywordID: cloudImportID(PublicIDPrefixKeyword), Location: "New York", LocationKey: "US/New York/New York"})
+	assertCloudImportJSONRoundTrip(t, CloudImportSourceKeyword{Device: DeviceDesktop, Text: "rank tracker", Location: "New York", LocationKey: "US/New York/New York"})
+	p := validCloudImportPackage()
+	p.Version = 5
+	p.Keywords[0].LocationKey = ""
+	assertCloudImportJSONRoundTrip(t, p)
+}
