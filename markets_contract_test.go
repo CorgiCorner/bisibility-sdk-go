@@ -11,7 +11,7 @@ func TestMarketLanguageJSONTagsMatchContract(t *testing.T) {
 
 	assertJSONTagsEqual(t, reflect.TypeOf(Keyword{}), []string{
 		"country", "created_at", "device", "id", "intent", "language_code", "language_label",
-		"latest_position", "location", "location_key", "previous_position", "project_id", "ranking_url",
+		"latest_check", "latest_position", "latest_successful_check", "location", "location_key", "previous_position", "project_id", "ranking_url",
 		"schedule", "tags", "target_url", "text", "topic", "updated_at",
 	})
 	assertJSONTagsEqual(t, reflect.TypeOf(KeywordMatchMarket{}), []string{

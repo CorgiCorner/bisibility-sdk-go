@@ -25,7 +25,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.13.0"
+const Version = "0.16.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -180,7 +180,13 @@ type requestConfig struct {
 	idempotencyKey      string
 	omitIdempotencyKey  bool
 	migrationToken      string
-	query               url.Values
+	// nonIdempotent flips a GET from HTTP-idempotent to POST-style for retry
+	// purposes: the request has a potentially paid side effect that the
+	// server does not deduplicate, so a lost response must not trigger an
+	// automatic re-attempt. Callers who can tolerate repetition opt back in
+	// with WithIdempotencyKey, exactly as they do on write methods.
+	nonIdempotent bool
+	query         url.Values
 }
 
 func newRequestConfig(options ...RequestOption) requestConfig {
@@ -709,7 +715,7 @@ func (c *Client) executeRequestAttempt(ctx context.Context, method, path string,
 		return requestAttemptResult{err: err}
 	}
 
-	retryable := isIdempotentRequest(req)
+	retryable := isIdempotentRequest(req, config)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		result := requestAttemptResult{
@@ -793,7 +799,13 @@ func isRetryableResponseStatus(statusCode int) bool {
 	}
 }
 
-func isIdempotentRequest(req *http.Request) bool {
+func isIdempotentRequest(req *http.Request, config requestConfig) bool {
+	if config.nonIdempotent {
+		// A potentially paid request without a deduplicating backend is
+		// retried only when the caller supplied an Idempotency-Key, so a
+		// lost response does not silently charge the project twice.
+		return req.Header.Get("Idempotency-Key") != ""
+	}
 	switch req.Method {
 	case http.MethodGet, http.MethodHead, http.MethodPut, http.MethodDelete:
 		return true

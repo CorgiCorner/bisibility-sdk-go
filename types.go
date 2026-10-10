@@ -265,27 +265,60 @@ type KeywordSchedule struct {
 	Timezone       string             `json:"timezone"`
 }
 
+// ObservationCompleteness distinguishes scanned absence from unknown or truncated evidence.
+type ObservationCompleteness string
+
+const (
+	ObservationComplete               ObservationCompleteness = "complete"
+	ObservationTruncatedByStopOnMatch ObservationCompleteness = "truncated_by_stop_on_match"
+	ObservationUnknown                ObservationCompleteness = "unknown"
+)
+
+// KeywordLatestCheck describes the most recent execution independently of a prior success.
+type KeywordLatestCheck struct {
+	CheckedAt               time.Time                `json:"checked_at"`
+	Error                   *string                  `json:"error"`
+	ErrorCode               *string                  `json:"error_code"`
+	ID                      string                   `json:"id"`
+	ObservationCompleteness *ObservationCompleteness `json:"observation_completeness"`
+	Position                *int                     `json:"position"`
+	RunID                   *string                  `json:"run_id"`
+	Status                  string                   `json:"status"`
+}
+
+// KeywordLatestSuccessfulCheck retains the most recent completed observation.
+type KeywordLatestSuccessfulCheck struct {
+	CheckedAt               time.Time                `json:"checked_at"`
+	ID                      string                   `json:"id"`
+	ObservationCompleteness *ObservationCompleteness `json:"observation_completeness"`
+	Position                *int                     `json:"position"`
+	RankingURL              *string                  `json:"ranking_url"`
+	RunID                   *string                  `json:"run_id"`
+}
+
 // Keyword is a tracked keyword and its latest rank summary.
 type Keyword struct {
-	ID               string           `json:"id"`
-	ProjectID        string           `json:"project_id"`
-	Text             string           `json:"text"`
-	Country          string           `json:"country"`
-	LanguageCode     string           `json:"language_code"`
-	LanguageLabel    string           `json:"language_label"`
-	Location         string           `json:"location"`
-	LocationKey      string           `json:"location_key"`
-	Device           Device           `json:"device"`
-	Intent           *string          `json:"intent"`
-	Topic            *string          `json:"topic"`
-	TargetURL        *string          `json:"target_url"`
-	RankingURL       *string          `json:"ranking_url"`
-	LatestPosition   *int             `json:"latest_position"`
-	PreviousPosition *int             `json:"previous_position"`
-	Schedule         *KeywordSchedule `json:"schedule"`
-	Tags             []string         `json:"tags"`
-	CreatedAt        time.Time        `json:"created_at"`
-	UpdatedAt        time.Time        `json:"updated_at"`
+	ID                    string                        `json:"id"`
+	ProjectID             string                        `json:"project_id"`
+	Text                  string                        `json:"text"`
+	Country               string                        `json:"country"`
+	LanguageCode          string                        `json:"language_code"`
+	LanguageLabel         string                        `json:"language_label"`
+	LatestCheck           *KeywordLatestCheck           `json:"latest_check"`
+	LatestSuccessfulCheck *KeywordLatestSuccessfulCheck `json:"latest_successful_check"`
+	Location              string                        `json:"location"`
+	LocationKey           string                        `json:"location_key"`
+	Device                Device                        `json:"device"`
+	Intent                *string                       `json:"intent"`
+	Topic                 *string                       `json:"topic"`
+	TargetURL             *string                       `json:"target_url"`
+	RankingURL            *string                       `json:"ranking_url"`
+	LatestPosition        *int                          `json:"latest_position"`
+	PreviousPosition      *int                          `json:"previous_position"`
+	Schedule              *KeywordSchedule              `json:"schedule"`
+	Tags                  []string                      `json:"tags"`
+	CreatedAt             time.Time                     `json:"created_at"`
+	UpdatedAt             time.Time                     `json:"updated_at"`
 }
 
 // KeywordScheduleInput is the camelCase schedule shape accepted by write endpoints.
@@ -396,6 +429,12 @@ func (n NullableString) IsSet() bool {
 	return n.set
 }
 
+// IsNull reports whether the caller supplied an explicit JSON null for the
+// field (as opposed to leaving it unset).
+func (n NullableString) IsNull() bool {
+	return n.set && n.value == nil
+}
+
 // Value returns the underlying string pointer. A nil pointer means JSON null when IsSet is true.
 func (n NullableString) Value() *string {
 	return n.value
@@ -408,6 +447,25 @@ func (n NullableString) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(*n.value)
+}
+
+// UnmarshalJSON lets a NullableString round-trip a decoded response. An
+// explicit JSON null decodes to the cleared state; a string value to that
+// value. A missing field is handled by the enclosing struct and leaves the
+// zero value unset.
+func (n *NullableString) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		n.set = true
+		n.value = nil
+		return nil
+	}
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	n.set = true
+	n.value = &value
+	return nil
 }
 
 // UpdateKeywordInput updates keyword metadata. Use StringValue or NullString
@@ -540,16 +598,18 @@ type RankCheckAttempt struct {
 // RankCheck is a keyword rank check. Status is running for async checks that
 // have not completed yet.
 type RankCheck struct {
-	ID               string             `json:"id"`
-	KeywordID        string             `json:"keyword_id"`
-	Attempts         []RankCheckAttempt `json:"attempts"`
-	CheckedAt        time.Time          `json:"checked_at"`
-	CostCents        *float64           `json:"cost_cents"`
-	Error            *string            `json:"error"`
-	Position         *int               `json:"position"`
-	PreviousPosition *int               `json:"previous_position"`
-	Provider         string             `json:"provider"`
-	RankingURL       *string            `json:"ranking_url"`
+	ID        string `json:"id"`
+	KeywordID string `json:"keyword_id"`
+	// Nil on legacy checks; a null position alone does not establish absence.
+	ObservationCompleteness *ObservationCompleteness `json:"observation_completeness"`
+	Attempts                []RankCheckAttempt       `json:"attempts"`
+	CheckedAt               time.Time                `json:"checked_at"`
+	CostCents               *float64                 `json:"cost_cents"`
+	Error                   *string                  `json:"error"`
+	Position                *int                     `json:"position"`
+	PreviousPosition        *int                     `json:"previous_position"`
+	Provider                string                   `json:"provider"`
+	RankingURL              *string                  `json:"ranking_url"`
 	// RunID is the run that produced this check, empty for checks recorded before runs existed.
 	RunID  string `json:"run_id"`
 	Status string `json:"status"`

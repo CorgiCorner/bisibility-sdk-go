@@ -431,20 +431,40 @@ type AnalyzeAIVisibilityOptions struct {
 // CompareAIPromptsOptions selects a synthetic prompt and bounded model list.
 type CompareAIPromptsOptions struct {
 	AIResearchInput
-	Prompt string   `json:"prompt"`
-	Models []string `json:"models,omitempty"`
+	CostPolicy                string   `json:"cost_policy,omitempty"`
+	ActualCostAcknowledgement string   `json:"actual_cost_acknowledgement,omitempty"`
+	EstimatedCostLimitCents   *int     `json:"estimated_cost_limit_cents,omitempty"`
+	IdempotencyKey            string   `json:"idempotency_key,omitempty"`
+	EstimateCredentialsRef    string   `json:"estimate_credentials_ref,omitempty"`
+	WebSearch                 bool     `json:"web_search,omitempty"`
+	CountryISOCode            string   `json:"country_iso_code,omitempty"`
+	ResponseLanguage          string   `json:"response_language,omitempty"`
+	MaxOutputTokens           int      `json:"max_output_tokens,omitempty"`
+	Prompt                    string   `json:"prompt"`
+	Models                    []string `json:"models,omitempty"`
 }
 
 // AIAnalysisOutcome distinguishes an estimate from a saved analysis report.
 type AIAnalysisOutcome struct {
-	OK                 bool              `json:"ok"`
-	Estimate           bool              `json:"estimate"`
-	EstimatedCostCents *float64          `json:"estimated_cost_cents,omitempty"`
-	Evidence           string            `json:"evidence,omitempty"`
-	Cached             *bool             `json:"cached,omitempty"`
-	ReportID           *string           `json:"report_id,omitempty"`
-	CostCents          *float64          `json:"cost_cents,omitempty"`
-	Result             *AIAnalysisResult `json:"result,omitempty"`
+	EstimateKind           string            `json:"estimate_kind,omitempty"`
+	IsGuaranteedMaximum    *bool             `json:"is_guaranteed_maximum,omitempty"`
+	CredentialSource       string            `json:"credential_source,omitempty"`
+	EstimateCredentialsRef string            `json:"estimate_credentials_ref,omitempty"`
+	IsPartialEstimate      *bool             `json:"is_partial_estimate,omitempty"`
+	PricingPolicy          string            `json:"pricing_policy,omitempty"`
+	PricingCheckedAt       string            `json:"pricing_checked_at,omitempty"`
+	ForecastExclusions     []string          `json:"forecast_exclusions,omitempty"`
+	ForecastScope          string            `json:"forecast_scope,omitempty"`
+	ForecastAssumptions    []string          `json:"forecast_assumptions,omitempty"`
+	RetryBlocked           *bool             `json:"retry_blocked,omitempty"`
+	OK                     bool              `json:"ok"`
+	Estimate               bool              `json:"estimate"`
+	EstimatedCostCents     *float64          `json:"estimated_cost_cents,omitempty"`
+	Evidence               string            `json:"evidence,omitempty"`
+	Cached                 *bool             `json:"cached,omitempty"`
+	ReportID               *string           `json:"report_id,omitempty"`
+	CostCents              *float64          `json:"cost_cents,omitempty"`
+	Result                 *AIAnalysisResult `json:"result,omitempty"`
 }
 
 func (outcome *AIAnalysisOutcome) UnmarshalJSON(data []byte) error {

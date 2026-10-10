@@ -69,8 +69,7 @@ func IsPublicID(value string) bool {
 	if !ok || prefix == "" || !publicIDSuffixPattern.MatchString(suffix) {
 		return false
 	}
-	_, ok = publicIDPrefixes[PublicIDPrefix(prefix)]
-	return ok
+	return isRegisteredPublicIDPrefix(PublicIDPrefix(prefix))
 }
 
 // ValidatePublicID validates a strict public ID from any registered namespace.
@@ -83,7 +82,7 @@ func ValidatePublicID(value string) error {
 
 // ValidatePublicIDPrefix validates a strict public ID in one resource namespace.
 func ValidatePublicIDPrefix(value string, prefix PublicIDPrefix) error {
-	if _, ok := publicIDPrefixes[prefix]; !ok {
+	if !isRegisteredPublicIDPrefix(prefix) {
 		return fmt.Errorf("unsupported public ID prefix %q", prefix)
 	}
 	if !strings.HasPrefix(value, string(prefix)+"_") || !publicIDSuffixPattern.MatchString(strings.TrimPrefix(value, string(prefix)+"_")) {
@@ -463,7 +462,11 @@ func validateResponseStruct(value reflect.Value, path string) error {
 }
 
 func validateRegisteredResponseFields(value reflect.Value, path string) error {
-	if prefixes, ok := responsePublicIDFieldPrefixes[value.Type()]; ok {
+	prefixes, ok := responsePublicIDFieldPrefixes[value.Type()]
+	if !ok {
+		prefixes, ok = trackingResponsePublicIDFields[value.Type()]
+	}
+	if ok {
 		for jsonName, prefix := range prefixes {
 			field, found := responseFieldByJSONName(value.Type(), jsonName)
 			if !found {

@@ -85,19 +85,21 @@ type BacklinksEstimate struct {
 
 // BacklinksSnapshot is one cached or paid backlink analysis result.
 type BacklinksSnapshot struct {
-	Cached             bool                    `json:"cached"`
-	CachedUntil        time.Time               `json:"cached_until"`
-	CostCents          float64                 `json:"cost_cents"`
-	FetchedAt          time.Time               `json:"fetched_at"`
-	FetchedRowCount    int                     `json:"fetched_row_count"`
-	History            []BacklinksHistoryMonth `json:"history"`
-	IncludeSubdomains  bool                    `json:"include_subdomains"`
-	Provider           string                  `json:"provider"`
-	Rows               []BacklinkRow           `json:"rows"`
-	Summary            BacklinksSummary        `json:"summary"`
-	Target             string                  `json:"target"`
-	TargetScope        BacklinkTargetScope     `json:"target_scope"`
-	TotalRowsAvailable int                     `json:"total_rows_available"`
+	Cached          bool                    `json:"cached"`
+	CachedUntil     time.Time               `json:"cached_until"`
+	CostCents       float64                 `json:"cost_cents"`
+	FetchedAt       time.Time               `json:"fetched_at"`
+	FetchedRowCount int                     `json:"fetched_row_count"`
+	History         []BacklinksHistoryMonth `json:"history"`
+	// True only with empty history after an optional history failure.
+	HistoryUnavailable bool                `json:"history_unavailable"`
+	IncludeSubdomains  bool                `json:"include_subdomains"`
+	Provider           string              `json:"provider"`
+	Rows               []BacklinkRow       `json:"rows"`
+	Summary            BacklinksSummary    `json:"summary"`
+	Target             string              `json:"target"`
+	TargetScope        BacklinkTargetScope `json:"target_scope"`
+	TotalRowsAvailable int                 `json:"total_rows_available"`
 }
 
 // BacklinksResult is the discriminated estimate/snapshot response data returned by

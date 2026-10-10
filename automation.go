@@ -11,7 +11,10 @@ func (c *Client) ListRankedKeywordSuggestions(ctx context.Context, projectID str
 	if input != nil {
 		addQuery(config.query, "connection_id", input.ConnectionID)
 		if input.Fresh {
+			// Fresh suggestions re-run the paid provider call; the backend
+			// route is not idempotent so a retry would double-charge.
 			config.query.Set("fresh", "true")
+			config.nonIdempotent = true
 		}
 		addIntQuery(config.query, "limit", input.Limit)
 		addIntQuery(config.query, "offset", input.Offset)
@@ -28,6 +31,11 @@ func (c *Client) ResearchKeywords(ctx context.Context, projectID string, input R
 	addQuery(config.query, "connection_id", input.ConnectionID)
 	if input.EstimateOnly {
 		config.query.Set("estimate_only", "true")
+	} else {
+		// Non-estimate keyword research can spend provider budget. The
+		// backend route is not idempotent, so a retry after a lost response
+		// would double-charge; opt into retries with WithIdempotencyKey.
+		config.nonIdempotent = true
 	}
 	if input.Fresh {
 		config.query.Set("fresh", "true")

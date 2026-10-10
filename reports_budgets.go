@@ -158,10 +158,13 @@ func (c *Client) CompareAIPrompts(ctx context.Context, projectID string, input C
 	}
 	seen := map[string]bool{}
 	for _, model := range input.Models {
-		if (model != "gpt-4.1-mini" && model != "gpt-4.1-nano") || seen[model] {
+		if !regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$`).MatchString(model) || seen[model] {
 			return nil, &ConfigurationError{Message: fmt.Sprintf("Unsupported or duplicate prompt model %q.", model)}
 		}
 		seen[model] = true
+	}
+	if err := validatePromptCostPolicy(input); err != nil {
+		return nil, err
 	}
 	config := newRequestConfig(options...)
 	config.body = input

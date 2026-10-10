@@ -13,6 +13,12 @@ func (c *Client) AnalyzeBacklinks(ctx context.Context, projectID string, input A
 	config := newRequestConfig(options...)
 	if input.EstimateOnly {
 		config.query.Set("estimate_only", "true")
+	} else {
+		// Non-estimate backlink executions can spend provider budget. The
+		// backend route is not idempotent, so a retry after a lost response
+		// would double-charge; opt into retries explicitly with
+		// WithIdempotencyKey.
+		config.nonIdempotent = true
 	}
 	if input.Fresh {
 		config.query.Set("fresh", "true")
