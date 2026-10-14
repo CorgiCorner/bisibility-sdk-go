@@ -91,7 +91,9 @@ func (p *ProblemDetails) UnmarshalJSON(data []byte) error {
 
 // ListMeta contains pagination metadata.
 type ListMeta struct {
-	NextCursor *string `json:"next_cursor"`
+	// Report is present only on opt-in version 2 rank-history exports.
+	Report     *RankHistoryReportMetadata `json:"report,omitempty"`
+	NextCursor *string                    `json:"next_cursor"`
 }
 
 // ListResponse is returned by paginated list endpoints.
@@ -102,8 +104,9 @@ type ListResponse[T any] struct {
 
 // DataResponse is returned by endpoints that wrap data in a response envelope.
 type DataResponse[T any] struct {
-	Data T         `json:"data"`
-	Meta JSONValue `json:"meta,omitempty"`
+	Data     T         `json:"data"`
+	Meta     JSONValue `json:"meta,omitempty"`
+	Features JSONValue `json:"features,omitempty"`
 }
 
 // PaginationOptions configures cursor pagination.
@@ -176,16 +179,17 @@ var SerpDepths = [...]int{10, 20, 50, 100}
 // UTC). SerpDepth and SerpStopOnMatch are independent of the schedule: omitting
 // either keeps its stored value.
 type ProjectDefaultsPatch struct {
-	City            *string            `json:"city,omitempty"`
-	Country         string             `json:"country,omitempty"`
-	CronExpression  *string            `json:"cron_expression,omitempty"`
-	Device          Device             `json:"device,omitempty"`
-	Frequency       RankCheckFrequency `json:"frequency"`
-	JitterMinutes   *int               `json:"jitter_minutes,omitempty"`
-	LocationKey     string             `json:"location_key,omitempty"`
-	SerpDepth       *int               `json:"serp_depth,omitempty"`
-	SerpStopOnMatch *bool              `json:"serp_stop_on_match,omitempty"`
-	Timezone        string             `json:"timezone,omitempty"`
+	Review          *ProjectDefaultsReview `json:"review,omitempty"`
+	City            *string                `json:"city,omitempty"`
+	Country         string                 `json:"country,omitempty"`
+	CronExpression  *string                `json:"cron_expression,omitempty"`
+	Device          Device                 `json:"device,omitempty"`
+	Frequency       RankCheckFrequency     `json:"frequency"`
+	JitterMinutes   *int                   `json:"jitter_minutes,omitempty"`
+	LocationKey     string                 `json:"location_key,omitempty"`
+	SerpDepth       *int                   `json:"serp_depth,omitempty"`
+	SerpStopOnMatch *bool                  `json:"serp_stop_on_match,omitempty"`
+	Timezone        string                 `json:"timezone,omitempty"`
 }
 
 // ProjectOverviewRange identifies the rank-history window used for overview comparisons.
@@ -597,9 +601,26 @@ type RankCheckAttempt struct {
 
 // RankCheck is a keyword rank check. Status is running for async checks that
 // have not completed yet.
+type RankCheckUsage struct {
+	Quantity *float64 `json:"quantity"`
+	Status   string   `json:"status"`
+	Unit     string   `json:"unit"`
+}
+
+type RankCheckRunMetadata struct {
+	ID         string     `json:"id"`
+	StartedAt  *time.Time `json:"started_at"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Status     string     `json:"status"`
+	Trigger    string     `json:"trigger"`
+}
+
 type RankCheck struct {
-	ID        string `json:"id"`
-	KeywordID string `json:"keyword_id"`
+	ErrorCode *string               `json:"error_code"`
+	Usage     *RankCheckUsage       `json:"usage"`
+	Run       *RankCheckRunMetadata `json:"run"`
+	ID        string                `json:"id"`
+	KeywordID string                `json:"keyword_id"`
 	// Nil on legacy checks; a null position alone does not establish absence.
 	ObservationCompleteness *ObservationCompleteness `json:"observation_completeness"`
 	Attempts                []RankCheckAttempt       `json:"attempts"`

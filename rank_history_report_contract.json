@@ -1,0 +1,3180 @@
+{
+  "RankHistoryReportRecord": {
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "checked_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "check_recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparison_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "complete_through": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completeness": {
+            "type": "string"
+          },
+          "configured_scope": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "device": {
+                    "type": "string"
+                  },
+                  "engine": {
+                    "type": "string"
+                  },
+                  "identity_revision": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "language": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "policy_revision": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rank_scale": {
+                    "type": "string"
+                  },
+                  "result_kind": {
+                    "type": "string"
+                  },
+                  "surface": {
+                    "type": "string"
+                  },
+                  "target_revision": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "device",
+                  "engine",
+                  "identity_revision",
+                  "language",
+                  "location",
+                  "policy_revision",
+                  "rank_scale",
+                  "result_kind",
+                  "surface",
+                  "target_revision"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effective_scope": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "device": {
+                    "type": "string"
+                  },
+                  "engine": {
+                    "type": "string"
+                  },
+                  "identity_revision": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "language": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "policy_revision": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rank_scale": {
+                    "type": "string"
+                  },
+                  "result_kind": {
+                    "type": "string"
+                  },
+                  "surface": {
+                    "type": "string"
+                  },
+                  "target_revision": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "device",
+                  "engine",
+                  "identity_revision",
+                  "language",
+                  "location",
+                  "policy_revision",
+                  "rank_scale",
+                  "result_kind",
+                  "surface",
+                  "target_revision"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "expected_url_at_check": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "freshness": {
+            "type": "string"
+          },
+          "freshness_as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "freshness_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "example": "check_a00000000000000000000000",
+            "pattern": "^check_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "keyword_id": {
+            "example": "kw_a00000000000000000000000",
+            "pattern": "^kw_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "normalization_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ranking_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reported_position": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requested_depth": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "normalized_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "check_id": {
+                  "example": "check_a00000000000000000000000",
+                  "pattern": "^check_[a-z][a-z0-9]{23}$",
+                  "type": "string"
+                },
+                "keyword_id": {
+                  "example": "kw_a00000000000000000000000",
+                  "pattern": "^kw_[a-z][a-z0-9]{23}$",
+                  "type": "string"
+                },
+                "checked_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "check_recorded_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "observed_at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "recorded_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "requested_at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_observed_at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "block_position": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "business_name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "cid": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "domain": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maps_url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "ordinal": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "place_id": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "position_in_block": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rank_absolute": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rank_group": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rank_scale": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "promotion": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_page": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_block_id": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_ordinal": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "result_kind": {
+                  "type": "string"
+                },
+                "title": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "check_id",
+                "keyword_id",
+                "checked_at",
+                "check_recorded_at",
+                "observed_at",
+                "recorded_at",
+                "requested_at",
+                "source_observed_at",
+                "block_position",
+                "business_name",
+                "cid",
+                "domain",
+                "maps_url",
+                "ordinal",
+                "place_id",
+                "position_in_block",
+                "rank_absolute",
+                "rank_group",
+                "rank_scale",
+                "promotion",
+                "source_page",
+                "source_block_id",
+                "source_ordinal",
+                "result_kind",
+                "title",
+                "url"
+              ]
+            }
+          },
+          "normalized_item_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "checked_at",
+          "check_recorded_at",
+          "observed_at",
+          "recorded_at",
+          "requested_at",
+          "comparison_digest",
+          "complete_through",
+          "completeness",
+          "configured_scope",
+          "effective_scope",
+          "evidence",
+          "expected_url_at_check",
+          "freshness",
+          "freshness_as_of",
+          "freshness_reason",
+          "id",
+          "keyword_id",
+          "keyword",
+          "normalization_version",
+          "position",
+          "provider",
+          "ranking_url",
+          "reason",
+          "reported_position",
+          "requested_depth",
+          "normalized_items",
+          "normalized_item_count"
+        ]
+      },
+      {
+        "type": "object",
+        "properties": {
+          "checked_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "check_recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deferred_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "example": "check_a00000000000000000000000",
+            "pattern": "^check_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "keyword_id": {
+            "example": "kw_a00000000000000000000000",
+            "pattern": "^kw_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "kind": {
+            "const": "logical_rank_check",
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reported_provider_attempt_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checked_at",
+          "check_recorded_at",
+          "observed_at",
+          "recorded_at",
+          "requested_at",
+          "deferred_reason",
+          "error_code",
+          "finished_at",
+          "id",
+          "keyword_id",
+          "keyword",
+          "kind",
+          "provider",
+          "reported_provider_attempt_count",
+          "started_at",
+          "status"
+        ]
+      },
+      {
+        "type": "object",
+        "properties": {
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "example": "rcr_a00000000000000000000000",
+            "pattern": "^rcr_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "rank_check_state": {
+            "const": "not_attached",
+            "type": "string"
+          },
+          "kind": {
+            "const": "rank_check_run_item",
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "Opaque retained run-item ID, identical to the run-items API."
+          },
+          "keyword_id": {
+            "example": "kw_a00000000000000000000000",
+            "pattern": "^kw_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "not_before": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_status": {
+            "type": "string"
+          },
+          "run_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope_membership": {
+            "const": "persisted_run_item",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recorded_at",
+          "started_at",
+          "finished_at",
+          "status",
+          "blocked_reason",
+          "run_id",
+          "rank_check_state",
+          "kind",
+          "id",
+          "keyword_id",
+          "keyword",
+          "not_before",
+          "run_status",
+          "run_outcome",
+          "scope_membership"
+        ]
+      },
+      {
+        "type": "object",
+        "properties": {
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "example": "rcr_a00000000000000000000000",
+            "pattern": "^rcr_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "rank_check_state": {
+            "const": "not_attached",
+            "type": "string"
+          },
+          "kind": {
+            "const": "rank_check_run",
+            "type": "string"
+          },
+          "id": {
+            "example": "rcr_a00000000000000000000000",
+            "pattern": "^rcr_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          "planned_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "launched_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "selection_kind": {
+            "type": "string"
+          },
+          "scope_membership": {
+            "enum": [
+              "persisted_run_items",
+              "project_only"
+            ],
+            "type": "string"
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "requested": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "completed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "deferred": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "skipped": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cancelled": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "requested",
+              "total",
+              "completed",
+              "failed",
+              "deferred",
+              "skipped",
+              "cancelled"
+            ]
+          }
+        },
+        "required": [
+          "recorded_at",
+          "started_at",
+          "finished_at",
+          "status",
+          "blocked_reason",
+          "run_id",
+          "rank_check_state",
+          "kind",
+          "id",
+          "planned_for",
+          "launched_at",
+          "outcome",
+          "trigger",
+          "selection_kind",
+          "scope_membership",
+          "counts"
+        ]
+      }
+    ]
+  },
+  "RankHistoryReportMetadata": {
+    "type": "object",
+    "properties": {
+      "version": {
+        "const": 2,
+        "type": "integer"
+      },
+      "aggregation": {
+        "const": "none",
+        "type": "string"
+      },
+      "as_of": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "window": {
+        "type": "object",
+        "properties": {
+          "basis": {
+            "enum": [
+              "observed_at",
+              "recorded_at"
+            ],
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "basis",
+          "from",
+          "to"
+        ]
+      },
+      "summary_basis": {
+        "const": "current_definition_as_of_registered_baseline",
+        "type": "string"
+      },
+      "definition_version": {
+        "type": "string"
+      },
+      "metric_id": {
+        "type": "string"
+      },
+      "selection_digest": {
+        "type": "string"
+      },
+      "total_count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "excluded_unknown_time": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "unresolved_membership_count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "No-check runs omitted from a selected/filtered export because retained keyword membership cannot be proved. Project-only runs remain in full-project exports."
+      },
+      "normalized_items": {
+        "type": "object",
+        "properties": {
+          "total_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completeness": {
+            "const": "retained_only",
+            "type": "string"
+          },
+          "is_truncated": {
+            "const": false,
+            "type": "boolean"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "paging": {
+            "const": "observation_pages_only",
+            "type": "string"
+          }
+        },
+        "required": [
+          "total_count",
+          "completeness",
+          "is_truncated",
+          "capacity",
+          "paging"
+        ]
+      },
+      "membership": {
+        "type": "string",
+        "description": "Explicit membership policy: full project retained history, explicit selected retained history, or current active filtered query."
+      },
+      "summary": {
+        "type": "object",
+        "properties": {
+          "comparison": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "object",
+            "properties": {
+              "metric_id": {
+                "type": "string"
+              },
+              "definition_version": {
+                "type": "string"
+              },
+              "as_of": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "delta": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "counts": {
+                "type": "object",
+                "properties": {
+                  "expected": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "measured": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "metric_eligible": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "ranked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "known_absent": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "unknown": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "never_checked": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "failed": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "stale": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "unsupported": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "fresh_determinate": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "unknown_freshness": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "comparable": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "expected",
+                  "measured",
+                  "metric_eligible",
+                  "ranked",
+                  "known_absent",
+                  "unknown",
+                  "never_checked",
+                  "failed",
+                  "stale",
+                  "unsupported",
+                  "fresh_determinate",
+                  "unknown_freshness",
+                  "comparable"
+                ]
+              },
+              "data_coverage": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "observed_coverage": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "freshness": {
+                "type": "string"
+              },
+              "freshness_reason": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "imputed_weight_share": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "contributions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "target_id": {
+                      "example": "kw_a00000000000000000000000",
+                      "pattern": "^kw_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    },
+                    "weight": {
+                      "type": "number"
+                    },
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delta": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "target_id",
+                    "weight",
+                    "value",
+                    "delta"
+                  ]
+                }
+              },
+              "exclusions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "target_id": {
+                      "example": "kw_a00000000000000000000000",
+                      "pattern": "^kw_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "target_id",
+                    "reason"
+                  ]
+                }
+              },
+              "added": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "example": "kw_a00000000000000000000000",
+                      "pattern": "^kw_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "removed": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "example": "kw_a00000000000000000000000",
+                      "pattern": "^kw_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "composition_reason": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "weight_provenance": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "period": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "market": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "period",
+                  "market"
+                ]
+              },
+              "included_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "eligible_total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "is_truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "metric_id",
+              "definition_version",
+              "as_of",
+              "value",
+              "delta",
+              "counts",
+              "data_coverage",
+              "observed_coverage",
+              "freshness",
+              "freshness_reason",
+              "imputed_weight_share",
+              "contributions",
+              "exclusions",
+              "added",
+              "removed",
+              "composition_reason",
+              "weight_provenance",
+              "included_count",
+              "eligible_total",
+              "is_truncated"
+            ]
+          },
+          "movement_counts": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "improved": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "declined": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "entered": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "exited": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "first": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "moved": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "re_entered": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "steady": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "unknown": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "improved",
+                  "declined",
+                  "entered",
+                  "exited",
+                  "first",
+                  "moved",
+                  "re_entered",
+                  "steady",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retained_history": {
+            "type": "object",
+            "properties": {
+              "checks": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "completeness": {
+                "const": "retained_only",
+                "type": "string"
+              },
+              "targets": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "checks",
+              "completeness",
+              "targets"
+            ]
+          },
+          "selection_digest": {
+            "type": "string"
+          },
+          "time_basis": {
+            "type": "object",
+            "properties": {
+              "as_of": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "baseline": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "before": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "not_before": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "before",
+                      "not_before"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "current_not_before": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "as_of",
+              "baseline",
+              "current_not_before"
+            ]
+          }
+        },
+        "required": [
+          "comparison",
+          "metric",
+          "movement_counts",
+          "retained_history",
+          "selection_digest",
+          "time_basis"
+        ]
+      },
+      "resolutions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "baseline": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "comparison_digest": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "evidence": {
+                      "type": "string"
+                    },
+                    "freshness": {
+                      "type": "string"
+                    },
+                    "freshness_reason": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "example": "check_a00000000000000000000000",
+                      "pattern": "^check_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    },
+                    "normalization_version": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "observed_at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "provider": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "ranking_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reason": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reported_position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requested_depth": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "comparison_digest",
+                    "evidence",
+                    "freshness",
+                    "freshness_reason",
+                    "id",
+                    "normalization_version",
+                    "observed_at",
+                    "position",
+                    "provider",
+                    "ranking_url",
+                    "reason",
+                    "recorded_at",
+                    "reported_position",
+                    "requested_depth"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "comparison": {
+              "type": "string"
+            },
+            "comparison_boundary": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "point": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "comparison_digest": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "evidence": {
+                              "type": "string"
+                            },
+                            "freshness": {
+                              "type": "string"
+                            },
+                            "freshness_reason": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "id": {
+                              "example": "check_a00000000000000000000000",
+                              "pattern": "^check_[a-z][a-z0-9]{23}$",
+                              "type": "string"
+                            },
+                            "normalization_version": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "observed_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "position": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "provider": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "ranking_url": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "recorded_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reported_position": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "requested_depth": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "comparison_digest",
+                            "evidence",
+                            "freshness",
+                            "freshness_reason",
+                            "id",
+                            "normalization_version",
+                            "observed_at",
+                            "position",
+                            "provider",
+                            "ranking_url",
+                            "reason",
+                            "recorded_at",
+                            "reported_position",
+                            "requested_depth"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "point",
+                    "reason"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "comparison_window": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "before": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "not_before": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "before",
+                    "not_before"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "comparison_unavailable_reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "current": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "comparison_digest": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "evidence": {
+                      "type": "string"
+                    },
+                    "freshness": {
+                      "type": "string"
+                    },
+                    "freshness_reason": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "example": "check_a00000000000000000000000",
+                      "pattern": "^check_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    },
+                    "normalization_version": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "observed_at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "provider": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "ranking_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reason": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reported_position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requested_depth": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "comparison_digest",
+                    "evidence",
+                    "freshness",
+                    "freshness_reason",
+                    "id",
+                    "normalization_version",
+                    "observed_at",
+                    "position",
+                    "provider",
+                    "ranking_url",
+                    "reason",
+                    "recorded_at",
+                    "reported_position",
+                    "requested_depth"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "event": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "keyword_id": {
+              "example": "kw_a00000000000000000000000",
+              "pattern": "^kw_[a-z][a-z0-9]{23}$",
+              "type": "string"
+            },
+            "last_success": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "comparison_digest": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "evidence": {
+                      "type": "string"
+                    },
+                    "freshness": {
+                      "type": "string"
+                    },
+                    "freshness_reason": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "example": "check_a00000000000000000000000",
+                      "pattern": "^check_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    },
+                    "normalization_version": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "observed_at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "provider": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "ranking_url": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reason": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reported_position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requested_depth": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "comparison_digest",
+                    "evidence",
+                    "freshness",
+                    "freshness_reason",
+                    "id",
+                    "normalization_version",
+                    "observed_at",
+                    "position",
+                    "provider",
+                    "ranking_url",
+                    "reason",
+                    "recorded_at",
+                    "reported_position",
+                    "requested_depth"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "latest_attempt": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "example": "check_a00000000000000000000000",
+                      "pattern": "^check_[a-z][a-z0-9]{23}$",
+                      "type": "string"
+                    },
+                    "measurement_recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "observed_at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "recorded_at": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "measurement_recorded_at",
+                    "observed_at",
+                    "recorded_at",
+                    "status"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "movement": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "current_scope_state": {
+              "type": "string"
+            },
+            "last_known": {
+              "type": "object",
+              "properties": {
+                "baseline": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "comparison_digest": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "evidence": {
+                          "type": "string"
+                        },
+                        "freshness": {
+                          "type": "string"
+                        },
+                        "freshness_reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "id": {
+                          "example": "check_a00000000000000000000000",
+                          "pattern": "^check_[a-z][a-z0-9]{23}$",
+                          "type": "string"
+                        },
+                        "normalization_version": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "observed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "position": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "provider": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "ranking_url": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "reported_position": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "requested_depth": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "comparison_digest",
+                        "evidence",
+                        "freshness",
+                        "freshness_reason",
+                        "id",
+                        "normalization_version",
+                        "observed_at",
+                        "position",
+                        "provider",
+                        "ranking_url",
+                        "reason",
+                        "recorded_at",
+                        "reported_position",
+                        "requested_depth"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "comparison": {
+                  "type": "string"
+                },
+                "comparison_boundary": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "point": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "comparison_digest": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "evidence": {
+                                  "type": "string"
+                                },
+                                "freshness": {
+                                  "type": "string"
+                                },
+                                "freshness_reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "example": "check_a00000000000000000000000",
+                                  "pattern": "^check_[a-z][a-z0-9]{23}$",
+                                  "type": "string"
+                                },
+                                "normalization_version": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "observed_at": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "position": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "provider": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "ranking_url": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "recorded_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "reported_position": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "requested_depth": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "comparison_digest",
+                                "evidence",
+                                "freshness",
+                                "freshness_reason",
+                                "id",
+                                "normalization_version",
+                                "observed_at",
+                                "position",
+                                "provider",
+                                "ranking_url",
+                                "reason",
+                                "recorded_at",
+                                "reported_position",
+                                "requested_depth"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "point",
+                        "reason"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "comparison_window": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "before": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "not_before": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "before",
+                        "not_before"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "comparison_unavailable_reason": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "current": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "comparison_digest": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "evidence": {
+                          "type": "string"
+                        },
+                        "freshness": {
+                          "type": "string"
+                        },
+                        "freshness_reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "id": {
+                          "example": "check_a00000000000000000000000",
+                          "pattern": "^check_[a-z][a-z0-9]{23}$",
+                          "type": "string"
+                        },
+                        "normalization_version": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "observed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "position": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "provider": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "ranking_url": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "reported_position": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "requested_depth": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "comparison_digest",
+                        "evidence",
+                        "freshness",
+                        "freshness_reason",
+                        "id",
+                        "normalization_version",
+                        "observed_at",
+                        "position",
+                        "provider",
+                        "ranking_url",
+                        "reason",
+                        "recorded_at",
+                        "reported_position",
+                        "requested_depth"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "event": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "keyword_id": {
+                  "example": "kw_a00000000000000000000000",
+                  "pattern": "^kw_[a-z][a-z0-9]{23}$",
+                  "type": "string"
+                },
+                "last_success": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "comparison_digest": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "evidence": {
+                          "type": "string"
+                        },
+                        "freshness": {
+                          "type": "string"
+                        },
+                        "freshness_reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "id": {
+                          "example": "check_a00000000000000000000000",
+                          "pattern": "^check_[a-z][a-z0-9]{23}$",
+                          "type": "string"
+                        },
+                        "normalization_version": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "observed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "position": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "provider": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "ranking_url": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "recorded_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "reported_position": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "requested_depth": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "comparison_digest",
+                        "evidence",
+                        "freshness",
+                        "freshness_reason",
+                        "id",
+                        "normalization_version",
+                        "observed_at",
+                        "position",
+                        "provider",
+                        "ranking_url",
+                        "reason",
+                        "recorded_at",
+                        "reported_position",
+                        "requested_depth"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "latest_attempt": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "example": "check_a00000000000000000000000",
+                          "pattern": "^check_[a-z][a-z0-9]{23}$",
+                          "type": "string"
+                        },
+                        "measurement_recorded_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "observed_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "recorded_at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "measurement_recorded_at",
+                        "observed_at",
+                        "recorded_at",
+                        "status"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "movement": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "baseline",
+                "comparison",
+                "comparison_boundary",
+                "comparison_window",
+                "comparison_unavailable_reason",
+                "current",
+                "event",
+                "keyword_id",
+                "last_success",
+                "latest_attempt",
+                "movement"
+              ]
+            }
+          },
+          "required": [
+            "baseline",
+            "comparison",
+            "comparison_boundary",
+            "comparison_window",
+            "comparison_unavailable_reason",
+            "current",
+            "event",
+            "keyword_id",
+            "last_success",
+            "latest_attempt",
+            "movement",
+            "current_scope_state",
+            "last_known"
+          ]
+        }
+      }
+    },
+    "required": [
+      "version",
+      "aggregation",
+      "as_of",
+      "window",
+      "summary_basis",
+      "definition_version",
+      "metric_id",
+      "selection_digest",
+      "total_count",
+      "excluded_unknown_time",
+      "unresolved_membership_count",
+      "normalized_items",
+      "membership",
+      "summary",
+      "resolutions"
+    ]
+  },
+  "RankHistoryReportResponse": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RankHistoryReportRecord"
+        }
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "report": {
+            "$ref": "#/components/schemas/RankHistoryReportMetadata"
+          }
+        },
+        "required": [
+          "next_cursor",
+          "report"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ]
+  }
+}

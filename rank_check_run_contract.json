@@ -1,0 +1,409 @@
+{
+  "RankCheckRunRead": {
+    "properties": {
+      "blocked_reason": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "cost_cents": {
+        "anyOf": [
+          {
+            "minimum": 0,
+            "type": "number"
+          },
+          {
+            "minimum": 0,
+            "type": "null"
+          }
+        ]
+      },
+      "counts": {
+        "properties": {
+          "cancelled": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "completed": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "deferred": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "failed": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "requested": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "skipped": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "requested",
+          "total",
+          "completed",
+          "failed",
+          "deferred",
+          "skipped",
+          "cancelled"
+        ],
+        "type": "object"
+      },
+      "counts_basis": {
+        "type": "string"
+      },
+      "finished_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "format": "date-time",
+            "type": "null"
+          }
+        ]
+      },
+      "id": {
+        "example": "rcr_a00000000000000000000000",
+        "pattern": "^rcr_[a-z][a-z0-9]{23}$",
+        "type": "string"
+      },
+      "keyword_count": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "launched_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "format": "date-time",
+            "type": "null"
+          }
+        ]
+      },
+      "native_estimate": {
+        "anyOf": [
+          {
+            "properties": {
+              "provider_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "quantity": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  {
+                    "minimum": 0,
+                    "type": "null"
+                  }
+                ]
+              },
+              "unit": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "unknown_targets": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "provider_id",
+              "unit",
+              "quantity",
+              "unknown_targets"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "provider_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "quantity": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  {
+                    "minimum": 0,
+                    "type": "null"
+                  }
+                ]
+              },
+              "unit": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "unknown_targets": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "provider_id",
+              "unit",
+              "quantity",
+              "unknown_targets"
+            ],
+            "type": "null"
+          }
+        ]
+      },
+      "outcome": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "parent_run_id": {
+        "anyOf": [
+          {
+            "example": "rcr_a00000000000000000000000",
+            "pattern": "^rcr_[a-z][a-z0-9]{23}$",
+            "type": "string"
+          },
+          {
+            "example": "rcr_a00000000000000000000000",
+            "pattern": "^rcr_[a-z][a-z0-9]{23}$",
+            "type": "null"
+          }
+        ]
+      },
+      "planned_for": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "format": "date-time",
+            "type": "null"
+          }
+        ]
+      },
+      "polling_state": {
+        "description": "terminal, blocked, deferred, active, or unknown; no rank-check row is required.",
+        "type": "string"
+      },
+      "project_id": {
+        "example": "prj_a00000000000000000000000",
+        "pattern": "^prj_[a-z][a-z0-9]{23}$",
+        "type": "string"
+      },
+      "started_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "format": "date-time",
+            "type": "null"
+          }
+        ]
+      },
+      "status": {
+        "description": "Execution status; readers tolerate future values.",
+        "type": "string"
+      },
+      "target_count": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "terminal": {
+        "type": "boolean"
+      },
+      "trigger": {
+        "type": "string"
+      },
+      "usage": {
+        "anyOf": [
+          {
+            "properties": {
+              "actual": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "minimum": 0,
+                    "type": "null"
+                  }
+                ]
+              },
+              "estimated": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "minimum": 0,
+                    "type": "null"
+                  }
+                ]
+              },
+              "unit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "actual",
+              "estimated",
+              "unit"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "actual": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "minimum": 0,
+                    "type": "null"
+                  }
+                ]
+              },
+              "estimated": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "minimum": 0,
+                    "type": "null"
+                  }
+                ]
+              },
+              "unit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "actual",
+              "estimated",
+              "unit"
+            ],
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "id",
+      "project_id",
+      "status",
+      "outcome",
+      "terminal",
+      "polling_state",
+      "trigger",
+      "counts",
+      "counts_basis",
+      "keyword_count",
+      "target_count",
+      "planned_for",
+      "launched_at",
+      "started_at",
+      "finished_at",
+      "blocked_reason",
+      "parent_run_id",
+      "cost_cents",
+      "usage",
+      "native_estimate"
+    ],
+    "type": "object"
+  },
+  "RankCheckRunReadList": {
+    "properties": {
+      "data": {
+        "items": {
+          "$ref": "#/components/schemas/RankCheckRunRead"
+        },
+        "type": "array"
+      },
+      "meta": {
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "next_cursor"
+        ],
+        "type": "object"
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "type": "object"
+  }
+}

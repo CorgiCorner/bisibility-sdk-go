@@ -2,6 +2,7 @@ package bisibility
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -11,6 +12,12 @@ func (c *Client) ExportRankHistory(ctx context.Context, projectID string, input 
 	config := newRequestConfig(options...)
 	format := RankHistoryExportFormatJSON
 	if input != nil {
+		addQuery(config.query, "version", input.Version)
+		addQuery(config.query, "stream", input.Stream)
+		addQuery(config.query, "basis", input.Basis)
+		addQuery(config.query, "from", input.From)
+		addQuery(config.query, "to", input.To)
+		addQuery(config.query, "aggregation", input.Aggregation)
 		addQuery(config.query, "cursor", input.Cursor)
 		addQuery(config.query, "format", string(input.Format))
 		addQuery(config.query, "granularity", string(input.Granularity))
@@ -36,6 +43,9 @@ func (c *Client) ExportRankHistory(ctx context.Context, projectID string, input 
 	response, err := requestJSON[RankHistoryExportResponse](c, ctx, http.MethodGet, path, config)
 	if err != nil || response == nil {
 		return response, err
+	}
+	if input != nil && input.Version == "2" && (response.Meta.Report == nil || response.Meta.Report.Version != 2) {
+		return nil, fmt.Errorf("missing version 2 rank history report manifest")
 	}
 	response.Format = format
 	return response, nil

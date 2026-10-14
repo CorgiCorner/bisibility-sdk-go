@@ -14,34 +14,38 @@ import (
 type PublicIDPrefix string
 
 const (
-	PublicIDPrefixReport  PublicIDPrefix = "agr"
-	PublicIDPrefixAlert   PublicIDPrefix = "al"
-	PublicIDPrefixRule    PublicIDPrefix = "alr"
-	PublicIDPrefixAudit   PublicIDPrefix = "audit"
-	PublicIDPrefixCheck   PublicIDPrefix = "check"
-	PublicIDPrefixComp    PublicIDPrefix = "cmp"
-	PublicIDPrefixConn    PublicIDPrefix = "conn"
-	PublicIDPrefixHook    PublicIDPrefix = "dwh"
-	PublicIDPrefixMToken  PublicIDPrefix = "ferry"
-	PublicIDPrefixJob     PublicIDPrefix = "imp"
-	PublicIDPrefixInvite  PublicIDPrefix = "inv"
-	PublicIDPrefixKey     PublicIDPrefix = "key"
-	PublicIDPrefixKeyword PublicIDPrefix = "kw"
-	PublicIDPrefixMember  PublicIDPrefix = "mbr"
-	PublicIDPrefixNotif   PublicIDPrefix = "ntf"
-	PublicIDPrefixPAT     PublicIDPrefix = "pat"
-	PublicIDPrefixProject PublicIDPrefix = "prj"
-	PublicIDPrefixRun     PublicIDPrefix = "rcr"
-	PublicIDPrefixSession PublicIDPrefix = "sid"
-	PublicIDPrefixSignal  PublicIDPrefix = "sig"
-	PublicIDPrefixSKW     PublicIDPrefix = "svkw"
-	PublicIDPrefixTag     PublicIDPrefix = "tag"
-	PublicIDPrefixUser    PublicIDPrefix = "usr"
-	PublicIDPrefixView    PublicIDPrefix = "viw"
-	PublicIDPrefixWebhook PublicIDPrefix = "we"
+	PublicIDPrefixReport       PublicIDPrefix = "agr"
+	PublicIDPrefixAlert        PublicIDPrefix = "al"
+	PublicIDPrefixRule         PublicIDPrefix = "alr"
+	PublicIDPrefixAudit        PublicIDPrefix = "audit"
+	PublicIDPrefixCheck        PublicIDPrefix = "check"
+	PublicIDPrefixComp         PublicIDPrefix = "cmp"
+	PublicIDPrefixConn         PublicIDPrefix = "conn"
+	PublicIDPrefixHook         PublicIDPrefix = "dwh"
+	PublicIDPrefixMToken       PublicIDPrefix = "ferry"
+	PublicIDPrefixJob          PublicIDPrefix = "imp"
+	PublicIDPrefixInvite       PublicIDPrefix = "inv"
+	PublicIDPrefixKey          PublicIDPrefix = "key"
+	PublicIDPrefixKeyword      PublicIDPrefix = "kw"
+	PublicIDPrefixLocalMonitor PublicIDPrefix = "lmn"
+	PublicIDPrefixLocalRun     PublicIDPrefix = "lmr"
+	PublicIDPrefixLocalTarget  PublicIDPrefix = "lmt"
+	PublicIDPrefixMember       PublicIDPrefix = "mbr"
+	PublicIDPrefixNotif        PublicIDPrefix = "ntf"
+	PublicIDPrefixPAT          PublicIDPrefix = "pat"
+	PublicIDPrefixProject      PublicIDPrefix = "prj"
+	PublicIDPrefixRun          PublicIDPrefix = "rcr"
+	PublicIDPrefixSession      PublicIDPrefix = "sid"
+	PublicIDPrefixSignal       PublicIDPrefix = "sig"
+	PublicIDPrefixSKW          PublicIDPrefix = "svkw"
+	PublicIDPrefixTag          PublicIDPrefix = "tag"
+	PublicIDPrefixUser         PublicIDPrefix = "usr"
+	PublicIDPrefixView         PublicIDPrefix = "viw"
+	PublicIDPrefixWebhook      PublicIDPrefix = "we"
 )
 
 var publicIDPrefixes = map[PublicIDPrefix]struct{}{
+	PublicIDPrefixLocalMonitor: {}, PublicIDPrefixLocalRun: {}, PublicIDPrefixLocalTarget: {},
 	PublicIDPrefixReport: {},
 	PublicIDPrefixAlert:  {}, PublicIDPrefixAudit: {}, PublicIDPrefixCheck: {},
 	PublicIDPrefixComp: {}, PublicIDPrefixConn: {}, PublicIDPrefixHook: {},
@@ -190,6 +194,10 @@ func validateProjectRoutePart(parts []string, position int, part string) (bool, 
 		return false, nil
 	}
 	switch part {
+	case "rank-check-runs":
+		return true, validateRoutePart(parts, position+1, "runID", PublicIDPrefixRun)
+	case "local-monitors":
+		return true, validateLocalRoutePublicIDs(parts, position)
 	case "agent-reports", "site-audits":
 		return true, validateRoutePart(parts, position+1, "reportID", PublicIDPrefixReport)
 	case "webhooks":
@@ -371,6 +379,7 @@ var responsePublicIDFieldPrefixes = map[reflect.Type]map[string]PublicIDPrefix{
 	reflect.TypeOf(KeywordMatch{}):                     {"keyword_id": PublicIDPrefixKeyword},
 	reflect.TypeOf(KeywordBulkItemResult{}):            {"keyword_id": PublicIDPrefixKeyword},
 	reflect.TypeOf(RankCheck{}):                        {"id": PublicIDPrefixCheck, "keyword_id": PublicIDPrefixKeyword},
+	reflect.TypeOf(RankCheckRunMetadata{}):             {"id": PublicIDPrefixRun},
 	reflect.TypeOf(RankHistoryExportRow{}):             {"id": PublicIDPrefixCheck, "keyword_id": PublicIDPrefixKeyword},
 	reflect.TypeOf(AlertRule{}):                        {"id": PublicIDPrefixRule},
 	reflect.TypeOf(TriggeredAlert{}):                   {"id": PublicIDPrefixAlert},
@@ -450,6 +459,12 @@ func validateResponseValues(value reflect.Value, path string) error {
 }
 
 func validateResponseStruct(value reflect.Value, path string) error {
+	if value.Type() == reflect.TypeOf(RankHistoryExportRow{}) {
+		row := value.Interface().(RankHistoryExportRow)
+		if row.Report != nil {
+			return validateResponseValue(reflect.ValueOf(row.Report), path+".Report")
+		}
+	}
 	if err := validateRegisteredResponseFields(value, path); err != nil {
 		return err
 	}
@@ -465,6 +480,9 @@ func validateRegisteredResponseFields(value reflect.Value, path string) error {
 	prefixes, ok := responsePublicIDFieldPrefixes[value.Type()]
 	if !ok {
 		prefixes, ok = trackingResponsePublicIDFields[value.Type()]
+	}
+	if !ok {
+		prefixes, ok = reportResponsePublicIDFields[value.Type()]
 	}
 	if ok {
 		for jsonName, prefix := range prefixes {

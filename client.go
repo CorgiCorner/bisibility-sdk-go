@@ -25,7 +25,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.16.0"
+const Version = "0.17.0"
 
 const userAgent = "bisibility-sdk-go/" + Version
 
@@ -351,7 +351,15 @@ func (c *Client) UpdateProjectDefaults(ctx context.Context, projectID string, in
 		return nil, &ConfigurationError{Message: "UpdateProjectDefaults requires SerpDepth to be 10, 20, 50, or 100."}
 	}
 
-	config := newRequestConfig(options...)
+	config, err := reviewedDefaultsRequestConfig(input.Review, newRequestConfig(options...))
+	if err != nil {
+		return nil, err
+	}
+	if input.Review != nil {
+		if err := c.assertReviewedDefaultsSupport(ctx, options...); err != nil {
+			return nil, err
+		}
+	}
 	config.body = input
 	return requestJSON[ProjectDefaults](c, ctx, http.MethodPatch, projectPathRoot+url.PathEscape(projectID)+"/defaults", config)
 }
@@ -622,6 +630,10 @@ func addIntQuery(query url.Values, key string, value int) {
 }
 
 func requestJSON[T any](c *Client, ctx context.Context, method, path string, config requestConfig) (*T, error) {
+	return requestJSONWithValidation[T](c, ctx, method, path, config, nil)
+}
+
+func requestJSONWithValidation[T any](c *Client, ctx context.Context, method, path string, config requestConfig, validate func(*T) error) (*T, error) {
 	body, statusCode, err := c.do(ctx, method, path, config)
 	if err != nil {
 		return nil, err
@@ -647,6 +659,17 @@ func requestJSON[T any](c *Client, ctx context.Context, method, path string, con
 			Method:     method,
 			StatusCode: statusCode,
 			URL:        mustBuildURL(c, path, config.query),
+		}
+	}
+	if validate != nil {
+		if err := validate(&out); err != nil {
+			return nil, &ResponseError{
+				Body:       string(body),
+				Cause:      fmt.Errorf("response scope contract: %w", err),
+				Method:     method,
+				StatusCode: statusCode,
+				URL:        mustBuildURL(c, path, config.query),
+			}
 		}
 	}
 

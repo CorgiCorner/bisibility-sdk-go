@@ -643,3 +643,53 @@ Site backlinks normally have 12 history months. A successful partial snapshot ha
 Page scope does not request history. Missing availability metadata uses the legacy default.
 A failed summary remains an HTTP error with current-response evidence in problem `details`:
 `cost_cents: null` is an unknown total, while `known_summary_cost_cents` is confirmed.
+
+## Versioned retained history export
+
+Opt in with version 2 to retain report quality, metric versions, frozen selection
+and signed continuation cursors. Keep stream, basis, from/to and keyword selection
+unchanged on every page. The default remains legacy v1 rows. Observations include
+bounded normalized items; opaque CID strings retain all original digits. The
+recorded-at attempts stream also contains actual run/item variants without checks,
+including cancelled, deferred and blocked outcomes. Full-project exports retain
+explicit project-only runs; selected exports report unresolved membership exclusions.
+CSV contains a complete bounded report manifest and accepts no cursor. Oversized
+sources fail with 413, and changed signed snapshots fail with 409.
+
+See the [rank-history contract](https://bisibility.com/docs/api/rank-history).
+
+### Retained Local monitor reads
+
+`ListLocalMonitorRuns`, `GetLocalMonitorRunResult`, `ListLocalMonitorPointListings`,
+`ListLocalMonitorPointHistory` and `ExportLocalMonitorRun` use GET only.
+They never start paid measurements, schedules or rematching.
+Pass the project's `prj_…`, monitor `lmn_…`, run `lmr_…` and target `lmt_…` IDs.
+`LocalMonitorReadOptions.AsOf` and history `From`/`To` require exact UTC
+millisecond instants. `LocalMonitorHistoryOptions.Cursor` is a pointer so absent
+and invalid empty cursors remain distinct; opaque cursors contain 1–8000 characters.
+
+```go
+result, err := client.GetLocalMonitorRunResult(ctx, projectID, monitorID, runID,
+    &bisibility.LocalMonitorReadOptions{AsOf: "2026-10-12T12:00:00.000Z"})
+export, err := client.ExportLocalMonitorRun(ctx, projectID, monitorID, runID,
+    &bisibility.LocalMonitorExportOptions{Version: "1", Format: "csv"})
+```
+
+History uses `occurrence_created_at`. Nullable ranks, timestamps, axes and
+`policy_epoch` preserve unknown evidence. CID is an opaque string, never a number.
+Required response shapes, ID namespaces and report/version discriminants are
+validated; future metadata enum values remain readable. JSON export is in
+`LocalMonitorExportResponse.Report`; CSV is exact server text in `.CSV`.
+Existing authentication, context cancellation, timeout, retry and error behavior
+remains shared with the other SDK methods.
+
+### Retained rank-check run reads
+
+`ListRankCheckRuns` and `GetRankCheckRun` read the public execution state without
+launching a measurement or requiring a completed check. Use project `prj_` and
+run `rcr_` IDs. List filters support `Segment` (`history` or `planned`),
+comma-separated `Status`, opaque `Cursor` and `Limit` (1-200).
+`RankCheckRunRead` preserves nullable timestamps, cost, usage and provider estimates;
+future execution and polling states remain readable strings.
+
+Project defaults previews require `reviewed_project_defaults: v1`. Call `PreviewProjectDefaults` with a draft, present its signed preview and impact, then explicitly submit the same draft with `ProjectDefaultsReview` through `UpdateProjectDefaults`. Keep the revision as a string and reuse one command key for retries. Preview never changes project settings.

@@ -28,6 +28,7 @@ func TestProjectDefaultsJSONTagsMatchContract(t *testing.T) {
 		"updated_at",
 	})
 	assertJSONTagsEqual(t, reflect.TypeOf(ProjectDefaultsPatch{}), []string{
+		"review",
 		"city",
 		"country",
 		"cron_expression",

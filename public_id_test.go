@@ -25,7 +25,7 @@ func strictID(prefix PublicIDPrefix) string {
 func TestPublicIDPrefixRegistry(t *testing.T) {
 	want := []string{
 		"agr", "al", "alr", "audit", "check", "cmp", "conn", "dwh", "ferry", "imp", "inv", "key", "kw",
-		"mbr", "ntf", "pat", "prj", "rcr", "sid", "sig", "svkw", "tag", "usr", "viw", "we",
+		"lmn", "lmr", "lmt", "mbr", "ntf", "pat", "prj", "rcr", "sid", "sig", "svkw", "tag", "usr", "viw", "we",
 	}
 	got := make([]string, 0, len(publicIDPrefixes))
 	for prefix := range publicIDPrefixes {
@@ -355,6 +355,7 @@ func TestPublicIDResponseSchemas(t *testing.T) {
 		reflect.TypeOf(KeywordMatch{}):                     {"keyword_id": PublicIDPrefixKeyword},
 		reflect.TypeOf(KeywordBulkItemResult{}):            {"keyword_id": PublicIDPrefixKeyword},
 		reflect.TypeOf(RankCheck{}):                        {"id": PublicIDPrefixCheck, "keyword_id": PublicIDPrefixKeyword},
+		reflect.TypeOf(RankCheckRunMetadata{}):             {"id": PublicIDPrefixRun},
 		reflect.TypeOf(RankHistoryExportRow{}):             {"id": PublicIDPrefixCheck, "keyword_id": PublicIDPrefixKeyword},
 		reflect.TypeOf(AlertRule{}):                        {"id": PublicIDPrefixRule},
 		reflect.TypeOf(TriggeredAlert{}):                   {"id": PublicIDPrefixAlert},
