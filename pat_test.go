@@ -2,6 +2,7 @@ package bisibility
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -529,5 +530,26 @@ func webhookJSON(id string) map[string]any {
 		"last_delivery_at": "2026-01-06T00:00:00Z",
 		"updated_at":       "2026-01-02T00:00:00Z",
 		"url":              "https://example.com/hooks/bisibility",
+	}
+}
+
+func TestMeDecodesOwnProviderKeyState(t *testing.T) {
+	body := `{"email":"owner@example.com","id":"usr_a00000000000000000000000","name":"Owner",
+		"provider_keys_required":true,
+		"projects":[{"domain":"example.com","id":"prj_a00000000000000000000000","name":"Example",
+			"role":"owner","provider_keys_required":true,
+			"missing_provider_keys":[{"capability":"rank_check","providers":["dataforseo","serpapi"]},
+				{"capability":"future_capability","providers":[]}]}]}`
+	var me Me
+	if err := json.Unmarshal([]byte(body), &me); err != nil {
+		t.Fatalf("Unmarshal returned error: %v", err)
+	}
+	if !me.ProviderKeysRequired || !me.Projects[0].ProviderKeysRequired {
+		t.Fatalf("provider keys required = %v/%v, want true", me.ProviderKeysRequired, me.Projects[0].ProviderKeysRequired)
+	}
+	missing := me.Projects[0].MissingProviderKeys
+	if len(missing) != 2 || missing[0].Capability != OwnKeyCapabilityRankCheck ||
+		missing[1].Capability != "future_capability" || len(missing[0].Providers) != 2 {
+		t.Fatalf("missing provider keys = %+v", missing)
 	}
 }

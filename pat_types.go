@@ -2,12 +2,37 @@ package bisibility
 
 import "time"
 
+// OwnKeyCapability is a paid capability that may have to run on the account's own provider
+// keys. The set is open: the server may return values not listed here.
+type OwnKeyCapability string
+
+const (
+	OwnKeyCapabilityRankCheck       OwnKeyCapability = "rank_check"
+	OwnKeyCapabilityKeywordResearch OwnKeyCapability = "keyword_research"
+	OwnKeyCapabilityBacklinks       OwnKeyCapability = "backlinks"
+	OwnKeyCapabilityDomainOverview  OwnKeyCapability = "domain_overview"
+	OwnKeyCapabilityAITracking      OwnKeyCapability = "ai_tracking"
+)
+
+// MissingProviderKey is a paid capability the project cannot run on its own keys, with the
+// providers that would serve it.
+type MissingProviderKey struct {
+	Capability OwnKeyCapability `json:"capability"`
+	Providers  []string         `json:"providers"`
+}
+
 // MeProject is one project membership returned by GetMe.
 type MeProject struct {
-	Domain string        `json:"domain"`
-	ID     string        `json:"id"`
-	Name   string        `json:"name"`
-	Role   TeamRoleValue `json:"role"`
+	Domain string `json:"domain"`
+	ID     string `json:"id"`
+	// MissingProviderKeys is empty unless ProviderKeysRequired is true. Keys are connected on
+	// the web.
+	MissingProviderKeys []MissingProviderKey `json:"missing_provider_keys"`
+	Name                string               `json:"name"`
+	// ProviderKeysRequired is true when the owner account runs paid provider work only on its
+	// own keys.
+	ProviderKeysRequired bool          `json:"provider_keys_required"`
+	Role                 TeamRoleValue `json:"role"`
 }
 
 // Me is the authenticated personal access token user.
@@ -16,6 +41,9 @@ type Me struct {
 	ID       string      `json:"id"`
 	Name     string      `json:"name"`
 	Projects []MeProject `json:"projects"`
+	// ProviderKeysRequired is true when this account runs paid provider work only on its own
+	// provider keys.
+	ProviderKeysRequired bool `json:"provider_keys_required"`
 }
 
 // UpdateMeInput patches the authenticated user's profile.

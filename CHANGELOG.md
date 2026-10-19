@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.17.2 - 2026-10-19
+
+- Add own-provider-key state to `Me` and `MeProject` (`ProviderKeysRequired`, `MissingProviderKeys`) so apps can show which paid capabilities need a connected key.
+
 ## 0.17.1 - 2026-10-19
 
 - Add account analytics consent reads and idempotent updates, preserving pending decisions and independent browser replay.
