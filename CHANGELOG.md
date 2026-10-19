@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.17.1 - 2026-10-19
+
+- Add account analytics consent reads and idempotent updates, preserving pending decisions and independent browser replay.
+
 ## 0.17.0 - 2026-10-14
 
 - Add capability-checked project defaults previews and explicit signed review commands; previews leave settings unchanged.

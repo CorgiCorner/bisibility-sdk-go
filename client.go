@@ -25,7 +25,7 @@ const (
 )
 
 // Version is the SDK version reported in the User-Agent header.
-const Version = "0.17.0"
+const Version = "0.17.1"
 
 const userAgent = "bisibility-sdk-go/" + Version
 

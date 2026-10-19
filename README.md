@@ -564,6 +564,20 @@ if err != nil {
 }
 ```
 
+## Account analytics consent
+
+Account analytics permission is separate from browser replay. A null decision timestamp
+means pending. These authenticated account operations require a personal token; the server
+also enforces supported first-party authorization. An update sends only the explicit
+analytics boolean and preserves a refusal (`false`) in the request.
+
+```go
+consent, err := client.GetAnalyticsConsent(ctx)
+consent, err = client.UpdateAnalyticsConsent(ctx, bisibility.UpdateAnalyticsConsentInput{
+    Analytics: false,
+})
+```
+
 ## Errors
 
 All SDK-defined errors implement `bisibility.BisibilityError`. Non-2xx API responses return
