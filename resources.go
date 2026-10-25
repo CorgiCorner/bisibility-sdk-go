@@ -122,6 +122,8 @@ func (c *Client) ListProviders(ctx context.Context, projectID string, pagination
 // fallback chain, and any other value reorders it. Omitting Priority keeps a reconnected
 // provider's place and appends a new connection to the chain. Primary is SDK sugar for
 // Priority 0 and wins when both are set.
+// A new SERP connection starts disabled unless no other SERP connection is enabled,
+// and is placed after existing SERP connections.
 func (c *Client) ConnectProvider(ctx context.Context, projectID string, providerID ProviderID, input ConnectProviderInput, options ...RequestOption) (*ProviderConnection, error) {
 	config := newRequestConfig(options...)
 	connectInput := input
@@ -255,6 +257,9 @@ func (c *Client) GetNotificationPreferences(ctx context.Context, projectID strin
 
 // UpdateNotificationPreferences patches project notification preferences for the current user.
 func (c *Client) UpdateNotificationPreferences(ctx context.Context, projectID string, input UpdateNotificationPreferencesInput, options ...RequestOption) (*UpdatedNotificationPreferences, error) {
+	if err := validateCheckNotificationPreferences(input.CheckNotificationSetting, input.CheckNotificationTopN, input.CheckNotificationPositionMove); err != nil {
+		return nil, err
+	}
 	config := newRequestConfig(options...)
 	config.body = input
 	return requestJSON[UpdatedNotificationPreferences](c, ctx, http.MethodPatch, projectResourcePath(projectID, "notification-preferences"), config)

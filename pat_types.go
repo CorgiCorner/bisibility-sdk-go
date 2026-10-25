@@ -11,7 +11,7 @@ const (
 	OwnKeyCapabilityKeywordResearch OwnKeyCapability = "keyword_research"
 	OwnKeyCapabilityBacklinks       OwnKeyCapability = "backlinks"
 	OwnKeyCapabilityDomainOverview  OwnKeyCapability = "domain_overview"
-	OwnKeyCapabilityAITracking      OwnKeyCapability = "ai_tracking"
+	OwnKeyCapabilityPromptTracker   OwnKeyCapability = "ai_tracking"
 )
 
 // MissingProviderKey is a paid capability the project cannot run on its own keys, with the

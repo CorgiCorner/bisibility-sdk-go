@@ -169,8 +169,8 @@ func TestResearchWorkspaceOperations(t *testing.T) {
 			return c.RunSiteAudit(context.Background(), projectID, &RunSiteAuditOptions{MaxPages: 2})
 		}},
 		{"audit get", "GET", "site-audits/" + reportID, "site", func(c *Client) (any, error) { return c.GetSiteAudit(context.Background(), projectID, reportID) }},
-		{"visibility", "POST", "ai-visibility", "estimate", func(c *Client) (any, error) {
-			return c.AnalyzeAIVisibility(context.Background(), projectID, AnalyzeAIVisibilityOptions{AIResearchInput: AIResearchInput{Brand: "Example", Domain: "example.com", MaxCostCents: 0, EstimateOnly: true}})
+		{"visibility", "POST", "brand-visibility", "estimate", func(c *Client) (any, error) {
+			return c.AnalyzeBrandVisibility(context.Background(), projectID, AnalyzeBrandVisibilityOptions{AIResearchInput: AIResearchInput{Brand: "Example", Domain: "example.com", MaxCostCents: 0, EstimateOnly: true}})
 		}},
 		{"prompt", "POST", "prompt-explorer", "ai", func(c *Client) (any, error) {
 			return c.CompareAIPrompts(context.Background(), projectID, CompareAIPromptsOptions{AIResearchInput: AIResearchInput{Brand: "Example", Domain: "example.com", MaxCostCents: 2}, Prompt: "Example", Models: []string{"gpt-4.1-mini"}})

@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-// TestAITrackingTrendsPreservesStratification covers contract-audit finding
+// TestPromptTrackerTrendsPreservesStratification covers contract-audit finding
 // #8: decoding then re-encoding a trends response must preserve baseline,
 // strata, and each stratum's category.
-func TestAITrackingTrendsPreservesStratification(t *testing.T) {
+func TestPromptTrackerTrendsPreservesStratification(t *testing.T) {
 	body := []byte(`{
       "current_run_id": "air_a00000000000000000000000",
       "previous_run_id": "air_b00000000000000000000000",
@@ -26,7 +26,7 @@ func TestAITrackingTrendsPreservesStratification(t *testing.T) {
       "next_cursor": null,
       "previous_next_cursor": null
     }`)
-	var decoded AITrackingTrends
+	var decoded PromptTrackerTrends
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		t.Fatal(err)
 	}

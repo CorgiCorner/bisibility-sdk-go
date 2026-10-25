@@ -392,6 +392,8 @@ more, err := client.LoadMoreBacklinkRows(ctx, projectID, bisibility.LoadMoreBack
 ### Providers
 
 `ConnectProvider` stores credentials and places the connection in the project fallback chain.
+A new SERP connection starts disabled unless no other SERP connection is enabled, and is
+placed after existing SERP connections.
 `Priority` is optional and runs from 0 to 1000: `0` promotes the provider and renumbers the chain,
 any other value reorders it, and omitting it keeps a reconnected provider's place and appends a new
 connection. `Primary` is SDK sugar for `Priority` 0 and wins when both are set. The priority now
@@ -428,6 +430,50 @@ defaults, err := client.UpdateProjectDefaults(ctx, projectID, bisibility.Project
 	Frequency:   bisibility.RankCheckFrequencyDaily,
 	LocationKey: "US/Texas/Austin",
 	SerpDepth:   &serpDepth,
+})
+```
+
+### Search index
+
+Read sitemaps and inspect 1-10 URLs using the project's existing Search Console
+connection. No property override is accepted. Results are Google's indexed state,
+not a live test, and may be partial or delayed. All operations are free. Inspection
+requires write scope; manual and background calls share a project daily allowance,
+not Google's quota. Per-URL errors remain in `Results`; provider rate limits include
+`ResetAt` and `Scope` and stop further calls in the batch. Pass an unescaped absolute
+HTTP or HTTPS sitemap URL of 1-2048 characters to `GetSearchIndexSitemap`.
+
+```go
+inspections, err := client.InspectSearchIndexURLs(ctx, projectID, bisibility.SearchIndexInspectionInput{
+	URLs: []string{"https://example.com/pricing"},
+}, bisibility.WithIdempotencyKey("inspect-pricing-001"))
+```
+
+`WithIdempotencyKey` replays the response without another inspection and enables
+automatic retries. Without a key, inspections are not automatically retried.
+
+`GetPageIndexingReport` reads stored completeness, freshness, grouped reasons and
+estimated usage. `Complete=false` means the report is not a full-site census.
+Each reason's nullable `OldestResultAt` is its oldest stored result timestamp.
+`ListPageIndexingURLs` and `IteratePageIndexingURLs` support group, coverage state,
+sitemap, source, search, cursor, limit and optional history (up to 100 changes per
+URL). The optional `ChangedSince` filter includes URLs with a stored tracked change
+at or after that time, before pagination. Manual-only URLs require
+`Source: bisibility.PageIndexingSourceManual`.
+For missing Google reasons, use `CoverageState: "Unspecified"`; filter
+`inspection_failed` and `not_checked` by group alone. These free reads never call
+Google and use the same project's existing connection.
+
+`GetPageIndexingSettings` reads the background mode, allowance, supported modes
+and estimated usage. `UpdatePageIndexingSettings` requires write scope and at least
+one field; omitted fields stay unchanged and neither accepts null. The fixed daily
+allowance accepts 0-2000, including explicit zero. Modes are `off`, `fixed` and
+`available_quota` (self-host only). Use the response's `NextResetAt` timestamp.
+
+```go
+zero := 0
+settings, err := client.UpdatePageIndexingSettings(ctx, projectID, bisibility.PageIndexingSettingsPatch{
+	InspectionDailyLimit: &zero,
 })
 ```
 
@@ -470,6 +516,9 @@ defaults, err := client.UpdateProjectDefaults(ctx, projectID, bisibility.Project
   `CreateCloudImportSession`, `UploadCloudImportChunk`,
   `UploadCloudImportChunkRaw`, `FinalizeCloudImportSession`
 - Signals: `CreateSignal`, `ListSignals`
+- Search index: `ListSearchIndexSitemaps`, `GetSearchIndexSitemap`, `InspectSearchIndexURLs`
+- Page indexing: `GetPageIndexingReport`, `ListPageIndexingURLs`, `IteratePageIndexingURLs`,
+  `GetPageIndexingSettings`, `UpdatePageIndexingSettings`
 - Sitemap monitors: `ListSitemapMonitors`, `UpdateSitemapMonitor` (a project has one
   sitemap monitor and its monitor ID is the project ID)
 
@@ -510,7 +559,7 @@ returns `ListCompetitorsResponse` with markets and suggestions, and
 `ListMigrationTokens` returns `ListMigrationTokensResponse` with import job
 status.
 
-Typed methods cover project context, agent reports, AI visibility,
+Typed methods cover project context, agent reports, Brand Visibility,
 prompt comparison, and site audits. Agent reports use strict `agr_` IDs;
 `IterateAgentReports` preserves report-kind filters across v3 cursor pages. AI methods
 require `MaxCostCents` and distinguish cost estimates from saved results.
@@ -563,6 +612,22 @@ if err != nil {
 	log.Fatal(err)
 }
 ```
+
+Check-summary preferences use `CheckNotificationSettingInputAll`,
+`CheckNotificationSettingInputImportant`, or `CheckNotificationSettingInputNone` on
+`UpdateNotificationPreferencesInput.CheckNotificationSetting`. Optional
+`CheckNotificationTopN` and `CheckNotificationPositionMove` pointers accept 1 through 100;
+the server defaults are 10 and 5. `ProviderIncidentInApp` is an independent boolean pointer.
+`CheckInApp` remains readable for compatibility; writes are ignored by the server and
+reported in `UpdatedNotificationPreferences.Warnings`. Cloud imports preserve the legacy
+value for portability; legacy rows import as Important regardless of that value.
+
+Rank checks expose optional `ComparisonAllowed`, `ResultCompleteness`, `ReturnedDepth`,
+and `EvidenceProjection`. Run reads include `EvidenceProjections` linked by `CheckID`.
+Legacy history rows and version 2 observations and attempts include the same nullable
+provider evidence and recovery details. A nil depth is unknown; partial or unresolved
+evidence does not establish full-depth absence. Response enum values remain open to
+future server additions.
 
 ## Account analytics consent
 
@@ -620,16 +685,16 @@ updated, err := client.UpdateProviderBudgets(ctx, projectID, bisibility.Provider
 
 `report.Data` populates exactly one of `Backlinks`, `DomainOverview`, or `KeywordResearch`.
 
-## AI tracking
+## Prompt Tracker
 
-AI tracking methods manage project topics, immutable prompt revisions, disabled-by-default
-schedules, runs, samples, history, comparable trends, evidence exports, and editable prompt
-suggestions. Tracking resource IDs use `ait_`, `aip_`, `apr_`, `ais_`, `air_`, and `asm_`.
-Preview before launching paid work, pass the preview credential/budget/consent revisions, and
-provide explicit consent plus an `Idempotency-Key` for launch or retry. Preview never submits a
-provider task. Preserve the returned decimal USD strings, null amounts, unknown measurement
-states, original observation times, and cited sources. Model API tests and consumer observations
-remain distinct evidence sources.
+Prompt Tracker methods manage project topics, immutable prompt revisions, disabled-by-default
+schedules, runs, samples, history, comparable trends, and evidence exports. Resource IDs use
+`ait_`, `aip_`, `apr_`, `ais_`, `air_`, and `asm_`. Preview before launching paid work, pass the
+preview credential/budget/consent revisions, and provide explicit consent plus an
+`Idempotency-Key` for launch or retry. Preview never submits a provider task. Preserve the
+returned decimal USD strings, null amounts, unknown measurement states, original observation
+times, and cited sources. Model API tests and consumer observations remain distinct evidence
+sources.
 
 The free AI research catalog supplies current model and locale choices. Prompt comparison
 supports hard caps and explicitly consented provider actual-cost mode. Actual-cost mode requires
@@ -637,13 +702,16 @@ supports hard caps and explicitly consented provider actual-cost mode. Actual-co
 requires the estimate credential reference and a stable UUID. An advisory limit is not a
 guaranteed maximum charge.
 
-Model prompt generation uses `AITrackingSuggestionsPreview` followed by
-`AITrackingSuggestionsGenerate`. Review all five context fields, selected competitors, model
-and market. The complete snapshot must fit within 5000 serialized Unicode characters.
-Generation requires the unexpired frozen preview, explicit paid consent and
-`WithIdempotencyKey` with a stable UUID. Forecasts are not guaranteed maximum costs.
-Accepted edits retain `GenerationReference`; provider dataset prompts require a verified
-`ProviderDatasetReference`. Generated popularity and unknown USD costs remain null.
+## Prompt Research
+
+`SuggestPromptResearchPrompts` and `AcceptPromptResearchSuggestions` use
+`/projects/{project_id}/prompt-research/suggestions`. Model prompt generation uses
+`PromptResearchSuggestionsPreview` followed by `PromptResearchSuggestionsGenerate`. Review all
+five context fields, selected competitors, model and market. The complete snapshot must fit
+within 5000 serialized Unicode characters. Generation requires the unexpired frozen preview,
+explicit paid consent and `WithIdempotencyKey` with a stable UUID. Forecasts are not guaranteed
+maximum costs. Accepted edits retain `GenerationReference`; provider dataset prompts require a
+verified `ProviderDatasetReference`. Generated popularity and unknown USD costs remain null.
 
 ## Response evidence compatibility
 

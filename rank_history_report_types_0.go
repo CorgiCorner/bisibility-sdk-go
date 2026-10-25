@@ -16,6 +16,7 @@ type RankHistoryReportObservationConfiguredScope struct {
 
 // RankHistoryReportObservation preserves the version 2 server report fields.
 type RankHistoryReportObservation struct {
+	EvidenceProjection   *ProviderEvidenceProjection                  `json:"evidence_projection,omitempty"`
 	CheckedAt            string                                       `json:"checked_at"`
 	CheckRecordedAt      string                                       `json:"check_recorded_at"`
 	ObservedAt           *string                                      `json:"observed_at"`
@@ -47,22 +48,23 @@ type RankHistoryReportObservation struct {
 
 // RankHistoryReportAttempt preserves the version 2 server report fields.
 type RankHistoryReportAttempt struct {
-	CheckedAt                    string  `json:"checked_at"`
-	CheckRecordedAt              string  `json:"check_recorded_at"`
-	ObservedAt                   *string `json:"observed_at"`
-	RecordedAt                   string  `json:"recorded_at"`
-	RequestedAt                  *string `json:"requested_at"`
-	DeferredReason               *string `json:"deferred_reason"`
-	ErrorCode                    *string `json:"error_code"`
-	FinishedAt                   *string `json:"finished_at"`
-	ID                           string  `json:"id"`
-	KeywordID                    string  `json:"keyword_id"`
-	Keyword                      string  `json:"keyword"`
-	Kind                         string  `json:"kind"`
-	Provider                     *string `json:"provider"`
-	ReportedProviderAttemptCount int     `json:"reported_provider_attempt_count"`
-	StartedAt                    *string `json:"started_at"`
-	Status                       string  `json:"status"`
+	EvidenceProjection           *ProviderEvidenceProjection `json:"evidence_projection,omitempty"`
+	CheckedAt                    string                      `json:"checked_at"`
+	CheckRecordedAt              string                      `json:"check_recorded_at"`
+	ObservedAt                   *string                     `json:"observed_at"`
+	RecordedAt                   string                      `json:"recorded_at"`
+	RequestedAt                  *string                     `json:"requested_at"`
+	DeferredReason               *string                     `json:"deferred_reason"`
+	ErrorCode                    *string                     `json:"error_code"`
+	FinishedAt                   *string                     `json:"finished_at"`
+	ID                           string                      `json:"id"`
+	KeywordID                    string                      `json:"keyword_id"`
+	Keyword                      string                      `json:"keyword"`
+	Kind                         string                      `json:"kind"`
+	Provider                     *string                     `json:"provider"`
+	ReportedProviderAttemptCount int                         `json:"reported_provider_attempt_count"`
+	StartedAt                    *string                     `json:"started_at"`
+	Status                       string                      `json:"status"`
 }
 
 // RankHistoryReportMetadataWindow preserves the version 2 server report fields.

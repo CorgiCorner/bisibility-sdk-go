@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestAITrackingTransport(t *testing.T) {
+func TestPromptTrackerTransport(t *testing.T) {
 	project := "prj_a00000000000000000000000"
 	prompt := "aip_a00000000000000000000000"
 	run := "air_a00000000000000000000000"
@@ -37,18 +37,18 @@ func TestAITrackingTransport(t *testing.T) {
 	defer server.Close()
 	c := newTestClient(t, server.URL+"/api/v1")
 	ctx := context.Background()
-	plan := AITrackingRunInput{AITrackingPreviewInput: AITrackingPreviewInput{PromptIDs: []string{prompt}}, Consent: true}
-	if _, err := c.CreateAITrackingRun(ctx, project, plan, WithIdempotencyKey("stable")); err != nil {
+	plan := PromptTrackerRunInput{PromptTrackerPreviewInput: PromptTrackerPreviewInput{PromptIDs: []string{prompt}}, Consent: true}
+	if _, err := c.CreatePromptTrackerRun(ctx, project, plan, WithIdempotencyKey("stable")); err != nil {
 		t.Fatal(err)
 	}
-	result, err := c.ListAITrackingSamples(ctx, project, run, &PaginationOptions{Cursor: "opaque+/="})
+	result, err := c.ListPromptTrackerSamples(ctx, project, run, &PaginationOptions{Cursor: "opaque+/="})
 	if err != nil || result.Data[0].CostUSD != nil || result.Data[0].Evidence != nil || result.Data[0].Measurement != "unknown" {
 		t.Fatalf("lost unknown state: %v %v", result, err)
 	}
-	if _, err := c.CreateAITrackingRun(ctx, project, plan); err == nil {
+	if _, err := c.CreatePromptTrackerRun(ctx, project, plan); err == nil {
 		t.Error("missing identity accepted")
 	}
-	if _, err := c.GetAITrackingRun(ctx, project, prompt); err == nil {
+	if _, err := c.GetPromptTrackerRun(ctx, project, prompt); err == nil {
 		t.Error("wrong namespace accepted")
 	}
 	if count != 2 {
@@ -74,5 +74,39 @@ func TestActualCostPromptJSON(t *testing.T) {
 	input.EstimateOnly = false
 	if err := validatePromptCostPolicy(input); err == nil {
 		t.Fatal("execution accepted missing estimate identity")
+	}
+}
+
+func TestPromptEngineMode(t *testing.T) {
+	base := CompareAIPromptsOptions{AIResearchInput: AIResearchInput{Brand: "Example", Domain: "example.com", MaxCostCents: 60}, Prompt: "Example?", Engines: []string{"chat_gpt", "claude"}, WebSearch: true}
+	if err := validatePromptCostPolicy(base); err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var value map[string]any
+	_ = json.Unmarshal(body, &value)
+	if engines, ok := value["engines"].([]any); !ok || len(engines) != 2 {
+		t.Fatalf("engines not serialized: %v", value["engines"])
+	}
+	if _, found := value["models"]; found {
+		t.Fatal("engine mode serialized models")
+	}
+	for name, mutate := range map[string]func(*CompareAIPromptsOptions){
+		"models":      func(input *CompareAIPromptsOptions) { input.Models = []string{"gpt-5-mini"} },
+		"tokens":      func(input *CompareAIPromptsOptions) { input.MaxOutputTokens = 1024 },
+		"duplicate":   func(input *CompareAIPromptsOptions) { input.Engines = []string{"claude", "claude"} },
+		"unknown":     func(input *CompareAIPromptsOptions) { input.Engines = []string{"google"} },
+		"empty":       func(input *CompareAIPromptsOptions) { input.Engines = []string{} },
+		"actual cost": func(input *CompareAIPromptsOptions) { input.CostPolicy = "provider_actual_cost" },
+	} {
+		input := base
+		input.Engines = append([]string(nil), base.Engines...)
+		mutate(&input)
+		if err := validatePromptCostPolicy(input); err == nil {
+			t.Fatalf("engine mode accepted %s", name)
+		}
 	}
 }

@@ -366,6 +366,10 @@ type AIAnalysisRow struct {
 	Model            string               `json:"model"`
 	ObservedAt       *string              `json:"observed_at"`
 	Prompt           string               `json:"prompt"`
+	// Engine names the engine that answered in engine mode.
+	Engine         string  `json:"engine,omitempty"`
+	RequestedModel string  `json:"requested_model,omitempty"`
+	ActualModel    *string `json:"actual_model,omitempty"`
 }
 
 // AIAnalysisResult describes the API response.
@@ -418,8 +422,8 @@ type AIResearchInput struct {
 	Fresh        bool   `json:"fresh,omitempty"`
 }
 
-// AnalyzeAIVisibilityOptions selects an observed provider dataset.
-type AnalyzeAIVisibilityOptions struct {
+// AnalyzeBrandVisibilityOptions selects an observed provider dataset.
+type AnalyzeBrandVisibilityOptions struct {
 	AIResearchInput
 	LanguageCode string `json:"language_code,omitempty"`
 	Limit        int    `json:"limit,omitempty"`
@@ -442,6 +446,9 @@ type CompareAIPromptsOptions struct {
 	MaxOutputTokens           int      `json:"max_output_tokens,omitempty"`
 	Prompt                    string   `json:"prompt"`
 	Models                    []string `json:"models,omitempty"`
+	// Engines selects engine mode on Credits: chat_gpt, claude, gemini or perplexity, each
+	// answering with its calibrated flagship model. It excludes Models and MaxOutputTokens.
+	Engines []string `json:"engines,omitempty"`
 }
 
 // AIAnalysisOutcome distinguishes an estimate from a saved analysis report.

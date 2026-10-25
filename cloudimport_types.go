@@ -155,9 +155,15 @@ type CloudImportKeyword struct {
 // CloudImportNotificationPreference is one migrated per-user notification
 // preference set.
 type CloudImportNotificationPreference struct {
-	AlertEmail  *bool `json:"alert_email,omitempty"`
-	AlertInApp  *bool `json:"alert_in_app,omitempty"`
-	CheckEmail  *bool `json:"check_email,omitempty"`
+	CheckNotificationSetting      *CheckNotificationSettingInput `json:"check_notification_setting,omitempty"`
+	CheckNotificationTopN         *int                           `json:"check_notification_top_n,omitempty"`
+	CheckNotificationPositionMove *int                           `json:"check_notification_position_move,omitempty"`
+	ProviderIncidentInApp         *bool                          `json:"provider_incident_in_app,omitempty"`
+	AlertEmail                    *bool                          `json:"alert_email,omitempty"`
+	AlertInApp                    *bool                          `json:"alert_in_app,omitempty"`
+	CheckEmail                    *bool                          `json:"check_email,omitempty"`
+	// Deprecated: Preserved for portability. Legacy rows import as Important
+	// regardless of this value; use CheckNotificationSetting for new preferences.
 	CheckInApp  *bool `json:"check_in_app,omitempty"`
 	ImportEmail *bool `json:"import_email,omitempty"`
 	ImportInApp *bool `json:"import_in_app,omitempty"`
@@ -500,6 +506,9 @@ func (input *CloudImportKeyword) UnmarshalJSON(data []byte) error {
 }
 
 func (input CloudImportNotificationPreference) MarshalJSON() ([]byte, error) {
+	if err := validateCheckNotificationPreferences(input.CheckNotificationSetting, input.CheckNotificationTopN, input.CheckNotificationPositionMove); err != nil {
+		return nil, err
+	}
 	type wire CloudImportNotificationPreference
 	return json.Marshal(wire(input))
 }
@@ -508,6 +517,9 @@ func (input *CloudImportNotificationPreference) UnmarshalJSON(data []byte) error
 	type wire CloudImportNotificationPreference
 	var decoded wire
 	if err := decodeStrictCloudImportObject(data, &decoded, "CloudImportNotificationPreference", nil, nil); err != nil {
+		return err
+	}
+	if err := validateCheckNotificationPreferences(decoded.CheckNotificationSetting, decoded.CheckNotificationTopN, decoded.CheckNotificationPositionMove); err != nil {
 		return err
 	}
 	*input = CloudImportNotificationPreference(decoded)

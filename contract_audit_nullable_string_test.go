@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-// TestAITrackingSourceConfigurationMarshalsExplicitNullModel covers
+// TestPromptTrackerSourceConfigurationMarshalsExplicitNullModel covers
 // contract-audit finding #5 for the specific "model: null" shape the API
 // requires on a tracking payload: a nil Model must serialize as an explicit
 // JSON null, never be omitted, because the server-side schema is nullable
 // but required.
-func TestAITrackingSourceConfigurationMarshalsExplicitNullModel(t *testing.T) {
-	configuration := AITrackingSourceConfiguration{
+func TestPromptTrackerSourceConfigurationMarshalsExplicitNullModel(t *testing.T) {
+	configuration := PromptTrackerSourceConfiguration{
 		Provider:   "dataforseo",
 		Endpoint:   "serp/organic",
 		Engine:     "google",
@@ -43,27 +43,27 @@ func TestAITrackingSourceConfigurationMarshalsExplicitNullModel(t *testing.T) {
 func TestNullableStringThreeStateMarshal(t *testing.T) {
 	cases := []struct {
 		name  string
-		patch AITrackingPromptPatch
+		patch PromptTrackerPromptPatch
 		want  string
 	}{
 		{
 			name:  "zero patch omits every optional field",
-			patch: AITrackingPromptPatch{},
+			patch: PromptTrackerPromptPatch{},
 			want:  `{}`,
 		},
 		{
 			name:  "clearing topic sends explicit null, label stays omitted",
-			patch: AITrackingPromptPatch{TopicID: NullString()},
+			patch: PromptTrackerPromptPatch{TopicID: NullString()},
 			want:  `{"topic_id":null}`,
 		},
 		{
 			name:  "setting topic sends the string value",
-			patch: AITrackingPromptPatch{TopicID: StringValue("ait_a00000000000000000000000")},
+			patch: PromptTrackerPromptPatch{TopicID: StringValue("ait_a00000000000000000000000")},
 			want:  `{"topic_id":"ait_a00000000000000000000000"}`,
 		},
 		{
 			name: "clearing label and setting topic co-exist in one patch",
-			patch: AITrackingPromptPatch{
+			patch: PromptTrackerPromptPatch{
 				TopicID: StringValue("ait_a00000000000000000000000"),
 				Label:   NullString(),
 			},

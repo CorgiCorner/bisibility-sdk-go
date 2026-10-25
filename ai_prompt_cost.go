@@ -31,6 +31,9 @@ func validatePromptCostPolicy(input CompareAIPromptsOptions) error {
 	if input.ResponseLanguage != "" && !regexp.MustCompile(`^[a-z]{2,3}(?:-[a-zA-Z0-9]{2,4})?$`).MatchString(input.ResponseLanguage) {
 		return fail()
 	}
+	if input.Engines != nil && !validPromptEngines(input) {
+		return &ConfigurationError{Message: "Engine mode needs 1-4 distinct engines (chat_gpt, claude, gemini, perplexity), the hard cap, and no models or max output tokens."}
+	}
 	if input.CostPolicy == "" || input.CostPolicy == "hard_cap" {
 		if input.ActualCostAcknowledgement != "" || input.EstimatedCostLimitCents != nil || input.IdempotencyKey != "" || input.EstimateCredentialsRef != "" {
 			return fail()
@@ -44,4 +47,24 @@ func validatePromptCostPolicy(input CompareAIPromptsOptions) error {
 		return fail()
 	}
 	return nil
+}
+
+var promptEngines = map[string]bool{"chat_gpt": true, "claude": true, "gemini": true, "perplexity": true}
+
+// validPromptEngines mirrors the server's engine-mode rules before any request is sent.
+func validPromptEngines(input CompareAIPromptsOptions) bool {
+	if len(input.Engines) < 1 || len(input.Engines) > len(promptEngines) || len(input.Models) > 0 || input.MaxOutputTokens != 0 {
+		return false
+	}
+	if input.CostPolicy != "" && input.CostPolicy != "hard_cap" {
+		return false
+	}
+	seen := map[string]bool{}
+	for _, engine := range input.Engines {
+		if !promptEngines[engine] || seen[engine] {
+			return false
+		}
+		seen[engine] = true
+	}
+	return true
 }

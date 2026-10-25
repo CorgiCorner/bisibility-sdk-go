@@ -53,6 +53,7 @@ type RankCheckRunNativeEstimate struct {
 // states remain strings so that future server states can still be read.
 // Nullable timestamps retain the server's original RFC 3339 text.
 type RankCheckRunRead struct {
+	EvidenceProjections []RankCheckRunEvidenceProjection `json:"evidence_projections,omitempty"`
 	// Extensions retains additional top-level fields from future server versions.
 	Extensions     map[string]json.RawMessage  `json:"-"`
 	ID             string                      `json:"id"`

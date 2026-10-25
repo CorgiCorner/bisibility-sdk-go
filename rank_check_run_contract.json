@@ -347,6 +347,172 @@
             "type": "null"
           }
         ]
+      },
+      "evidence_projections": {
+        "anyOf": [
+          {
+            "items": {
+              "properties": {
+                "acceptance": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "accounting": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "check_id": {
+                  "example": "check_a00000000000000000000000",
+                  "pattern": "^check_[a-z][a-z0-9]{23}$",
+                  "type": "string",
+                  "x-bisibility-public-id": "check"
+                },
+                "cost": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "fulfillment": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "original_checked_at": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "recovery": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "last_attempt_at": {
+                          "anyOf": [
+                            {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "next_attempt_at": {
+                          "anyOf": [
+                            {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "state": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "last_attempt_at",
+                        "next_attempt_at",
+                        "reason"
+                      ],
+                      "x-bisibility-name": "ProviderEvidenceRecovery",
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "result": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "returned_depth": {
+                  "anyOf": [
+                    {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "acceptance",
+                "fulfillment",
+                "returned_depth",
+                "accounting",
+                "result",
+                "cost",
+                "original_checked_at",
+                "recovery",
+                "check_id"
+              ],
+              "type": "object",
+              "x-bisibility-name": "RankCheckRunEvidenceProjection"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [

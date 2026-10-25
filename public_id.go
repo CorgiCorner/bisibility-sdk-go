@@ -479,7 +479,7 @@ func validateResponseStruct(value reflect.Value, path string) error {
 func validateRegisteredResponseFields(value reflect.Value, path string) error {
 	prefixes, ok := responsePublicIDFieldPrefixes[value.Type()]
 	if !ok {
-		prefixes, ok = trackingResponsePublicIDFields[value.Type()]
+		prefixes, ok = promptTrackerResponsePublicIDFields[value.Type()]
 	}
 	if !ok {
 		prefixes, ok = reportResponsePublicIDFields[value.Type()]

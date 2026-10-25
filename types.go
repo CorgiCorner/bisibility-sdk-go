@@ -616,11 +616,18 @@ type RankCheckRunMetadata struct {
 }
 
 type RankCheck struct {
-	ErrorCode *string               `json:"error_code"`
-	Usage     *RankCheckUsage       `json:"usage"`
-	Run       *RankCheckRunMetadata `json:"run"`
-	ID        string                `json:"id"`
-	KeywordID string                `json:"keyword_id"`
+	// Retained response projections do not replay historical rank comparisons.
+	ComparisonAllowed  *bool                       `json:"comparison_allowed,omitempty"`
+	EvidenceProjection *ProviderEvidenceProjection `json:"evidence_projection,omitempty"`
+	// Partial or unresolved evidence never establishes a full-depth no-match.
+	ResultCompleteness *ResultCompleteness `json:"result_completeness,omitempty"`
+	// Organic depth actually returned; nil when absent or unknown.
+	ReturnedDepth *int                  `json:"returned_depth,omitempty"`
+	ErrorCode     *string               `json:"error_code"`
+	Usage         *RankCheckUsage       `json:"usage"`
+	Run           *RankCheckRunMetadata `json:"run"`
+	ID            string                `json:"id"`
+	KeywordID     string                `json:"keyword_id"`
 	// Nil on legacy checks; a null position alone does not establish absence.
 	ObservationCompleteness *ObservationCompleteness `json:"observation_completeness"`
 	Attempts                []RankCheckAttempt       `json:"attempts"`

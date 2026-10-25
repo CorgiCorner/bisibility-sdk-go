@@ -328,21 +328,25 @@ type ProviderDrawer struct {
 
 // Provider is one provider catalog item returned by ListProviders.
 type Provider struct {
-	CategoryID      string            `json:"category_id"`
-	CategoryTitle   string            `json:"category_title"`
-	Description     string            `json:"description"`
-	Drawer          ProviderDrawer    `json:"drawer"`
-	Enabled         *bool             `json:"enabled,omitempty"`
-	Icon            string            `json:"icon"`
-	ID              ProviderID        `json:"id"`
-	LogoDomain      string            `json:"logo_domain,omitempty"`
-	Meta            []ProviderMetaRow `json:"meta"`
-	Name            string            `json:"name"`
-	Primary         *bool             `json:"primary,omitempty"`
-	Priority        *int              `json:"priority,omitempty"`
-	SecondaryAction string            `json:"secondary_action,omitempty"`
-	Status          ProviderStatus    `json:"status"`
-	Tint            string            `json:"tint"`
+	CategoryID    string         `json:"category_id"`
+	CategoryTitle string         `json:"category_title"`
+	Description   string         `json:"description"`
+	Drawer        ProviderDrawer `json:"drawer"`
+	// Whether rank checks use this connection. A new SERP connection starts disabled
+	// unless no other SERP connection is enabled.
+	Enabled    *bool             `json:"enabled,omitempty"`
+	Icon       string            `json:"icon"`
+	ID         ProviderID        `json:"id"`
+	LogoDomain string            `json:"logo_domain,omitempty"`
+	Meta       []ProviderMetaRow `json:"meta"`
+	Name       string            `json:"name"`
+	Primary    *bool             `json:"primary,omitempty"`
+	// Order among connections of this kind, lowest first. New SERP connections
+	// are placed after existing SERP connections.
+	Priority        *int           `json:"priority,omitempty"`
+	SecondaryAction string         `json:"secondary_action,omitempty"`
+	Status          ProviderStatus `json:"status"`
+	Tint            string         `json:"tint"`
 }
 
 // ProviderCredentialsInput contains provider credentials for connect and test requests.
@@ -359,7 +363,8 @@ type ProviderCredentialsInput struct {
 // ConnectProviderInput connects or updates provider credentials for a project.
 // Priority is an optional fallback position from 0 to 1000; 0 promotes the provider and
 // renumbers the chain. Omitting it keeps a reconnected provider's place and appends a new
-// connection. Primary is SDK sugar for Priority 0.
+// connection. A new SERP connection starts disabled unless no other SERP
+// connection is enabled. Primary is SDK sugar for Priority 0.
 type ConnectProviderInput struct {
 	CostPerCheck *float64                  `json:"cost_per_check,omitempty"`
 	Credentials  *ProviderCredentialsInput `json:"credentials,omitempty"`
@@ -636,11 +641,17 @@ type CompetitorRemoveResult struct {
 
 // NotificationPreferences are the full notification preferences returned by GET.
 type NotificationPreferences struct {
-	AlertEmail        bool   `json:"alert_email"`
-	AlertInApp        bool   `json:"alert_in_app"`
-	AlertSlack        bool   `json:"alert_slack"`
-	AlertWebhook      bool   `json:"alert_webhook"`
-	CheckEmail        bool   `json:"check_email"`
+	CheckNotificationSetting      CheckNotificationSetting `json:"check_notification_setting"`
+	CheckNotificationTopN         int                      `json:"check_notification_top_n"`
+	CheckNotificationPositionMove int                      `json:"check_notification_position_move"`
+	ProviderIncidentInApp         *bool                    `json:"provider_incident_in_app,omitempty"`
+	AlertEmail                    bool                     `json:"alert_email"`
+	AlertInApp                    bool                     `json:"alert_in_app"`
+	AlertSlack                    bool                     `json:"alert_slack"`
+	AlertWebhook                  bool                     `json:"alert_webhook"`
+	CheckEmail                    bool                     `json:"check_email"`
+	// Deprecated: Read-only compatibility value, false only for None. Writes are
+	// ignored and return a warning; use CheckNotificationSetting instead.
 	CheckInApp        bool   `json:"check_in_app"`
 	Email             string `json:"email"`
 	EmailVerification string `json:"email_verification"`
@@ -655,31 +666,44 @@ type NotificationPreferences struct {
 
 // UpdateNotificationPreferencesInput patches notification preferences.
 type UpdateNotificationPreferencesInput struct {
-	AlertEmail   *bool `json:"alert_email,omitempty"`
-	AlertInApp   *bool `json:"alert_in_app,omitempty"`
-	AlertSlack   *bool `json:"alert_slack,omitempty"`
-	AlertWebhook *bool `json:"alert_webhook,omitempty"`
-	CheckEmail   *bool `json:"check_email,omitempty"`
-	CheckInApp   *bool `json:"check_in_app,omitempty"`
-	ImportEmail  *bool `json:"import_email,omitempty"`
-	ImportInApp  *bool `json:"import_in_app,omitempty"`
-	InviteEmail  *bool `json:"invite_email,omitempty"`
-	InviteInApp  *bool `json:"invite_in_app,omitempty"`
+	CheckNotificationSetting      *CheckNotificationSettingInput `json:"check_notification_setting,omitempty"`
+	CheckNotificationTopN         *int                           `json:"check_notification_top_n,omitempty"`
+	CheckNotificationPositionMove *int                           `json:"check_notification_position_move,omitempty"`
+	ProviderIncidentInApp         *bool                          `json:"provider_incident_in_app,omitempty"`
+	AlertEmail                    *bool                          `json:"alert_email,omitempty"`
+	AlertInApp                    *bool                          `json:"alert_in_app,omitempty"`
+	AlertSlack                    *bool                          `json:"alert_slack,omitempty"`
+	AlertWebhook                  *bool                          `json:"alert_webhook,omitempty"`
+	CheckEmail                    *bool                          `json:"check_email,omitempty"`
+	// Deprecated: Read-only compatibility value, false only for None. Writes are
+	// ignored and return a warning; use CheckNotificationSetting instead.
+	CheckInApp  *bool `json:"check_in_app,omitempty"`
+	ImportEmail *bool `json:"import_email,omitempty"`
+	ImportInApp *bool `json:"import_in_app,omitempty"`
+	InviteEmail *bool `json:"invite_email,omitempty"`
+	InviteInApp *bool `json:"invite_in_app,omitempty"`
 }
 
 // UpdatedNotificationPreferences is returned after a preferences patch.
 type UpdatedNotificationPreferences struct {
-	AlertEmail   bool   `json:"alert_email"`
-	AlertInApp   bool   `json:"alert_in_app"`
-	AlertSlack   bool   `json:"alert_slack"`
-	AlertWebhook bool   `json:"alert_webhook"`
-	CheckEmail   bool   `json:"check_email"`
-	CheckInApp   bool   `json:"check_in_app"`
-	ImportEmail  bool   `json:"import_email"`
-	ImportInApp  bool   `json:"import_in_app"`
-	InviteEmail  bool   `json:"invite_email"`
-	InviteInApp  bool   `json:"invite_in_app"`
-	ProjectID    string `json:"project_id"`
+	CheckNotificationSetting      CheckNotificationSetting        `json:"check_notification_setting"`
+	CheckNotificationTopN         int                             `json:"check_notification_top_n"`
+	CheckNotificationPositionMove int                             `json:"check_notification_position_move"`
+	ProviderIncidentInApp         *bool                           `json:"provider_incident_in_app,omitempty"`
+	Warnings                      []NotificationPreferenceWarning `json:"warnings,omitempty"`
+	AlertEmail                    bool                            `json:"alert_email"`
+	AlertInApp                    bool                            `json:"alert_in_app"`
+	AlertSlack                    bool                            `json:"alert_slack"`
+	AlertWebhook                  bool                            `json:"alert_webhook"`
+	CheckEmail                    bool                            `json:"check_email"`
+	// Deprecated: Read-only compatibility value, false only for None. Writes are
+	// ignored and return a warning; use CheckNotificationSetting instead.
+	CheckInApp  bool   `json:"check_in_app"`
+	ImportEmail bool   `json:"import_email"`
+	ImportInApp bool   `json:"import_in_app"`
+	InviteEmail bool   `json:"invite_email"`
+	InviteInApp bool   `json:"invite_in_app"`
+	ProjectID   string `json:"project_id"`
 }
 
 // MigrationScope selects which data a migration token can import.

@@ -1,0 +1,103 @@
+[
+  {
+    "operationId": "getNotificationPreferences",
+    "body": {
+      "alert_email": true,
+      "alert_in_app": true,
+      "alert_push": true,
+      "alert_slack": false,
+      "alert_webhook": false,
+      "check_email": false,
+      "check_in_app": true,
+      "check_notification_setting": "important",
+      "check_notification_top_n": 10,
+      "check_notification_position_move": 5,
+      "email": "owner@example.com",
+      "email_verification": "verified",
+      "import_email": true,
+      "import_in_app": true,
+      "invite_email": true,
+      "invite_in_app": true,
+      "project_id": "prj_a00000000000000000000000",
+      "report_email": true,
+      "slack_available": false,
+      "webhook_available": false
+    }
+  },
+  {
+    "operationId": "getRankCheckResult",
+    "body": {
+      "usage": {
+        "quantity": 3,
+        "status": "confirmed",
+        "unit": "operations"
+      },
+      "attempts": null,
+      "checked_at": "2026-09-05T12:00:00.000Z",
+      "cost_cents": 1.5,
+      "error": null,
+      "error_code": null,
+      "id": "check_a00000000000000000000000",
+      "keyword_id": "kw_a00000000000000000000000",
+      "observation_completeness": null,
+      "position": 3,
+      "previous_position": null,
+      "provider": "serpapi",
+      "ranking_url": null,
+      "run": null,
+      "run_id": null,
+      "status": "completed",
+      "evidence_projection": null
+    }
+  },
+  {
+    "operationId": "listRankCheckRuns",
+    "body": {
+      "data": [
+        {
+          "id": "rcr_a00000000000000000000000",
+          "project_id": "prj_a00000000000000000000000",
+          "status": "cancelled",
+          "outcome": null,
+          "terminal": true,
+          "polling_state": "terminal",
+          "trigger": "manual",
+          "counts": {
+            "requested": 1,
+            "total": 1,
+            "completed": 0,
+            "failed": 0,
+            "deferred": 0,
+            "skipped": 0,
+            "cancelled": 1
+          },
+          "counts_basis": "planned_or_unlaunched",
+          "keyword_count": 1,
+          "target_count": 1,
+          "planned_for": null,
+          "launched_at": null,
+          "started_at": null,
+          "finished_at": "2026-10-12T10:00:00.000Z",
+          "blocked_reason": null,
+          "parent_run_id": null,
+          "cost_cents": null,
+          "usage": {
+            "actual": null,
+            "estimated": null,
+            "unit": "operations"
+          },
+          "native_estimate": {
+            "provider_id": null,
+            "unit": null,
+            "quantity": null,
+            "unknown_targets": 1
+          },
+          "evidence_projections": null
+        }
+      ],
+      "meta": {
+        "next_cursor": null
+      }
+    }
+  }
+]

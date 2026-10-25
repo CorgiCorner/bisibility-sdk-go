@@ -135,17 +135,17 @@ func validateAIResearchInput(input AIResearchInput) error {
 	return nil
 }
 
-// AnalyzeAIVisibility estimates or reads observed AI-visibility datasets.
-func (c *Client) AnalyzeAIVisibility(ctx context.Context, projectID string, input AnalyzeAIVisibilityOptions, options ...RequestOption) (*DataResponse[AIAnalysisOutcome], error) {
+// AnalyzeBrandVisibility estimates or reads observed brand-visibility datasets.
+func (c *Client) AnalyzeBrandVisibility(ctx context.Context, projectID string, input AnalyzeBrandVisibilityOptions, options ...RequestOption) (*DataResponse[AIAnalysisOutcome], error) {
 	if err := validateAIResearchInput(input.AIResearchInput); err != nil {
 		return nil, err
 	}
 	if input.Limit < 0 || input.Limit > 20 || input.LocationCode < 0 || input.LocationCode > 9007199254740991 || (input.Platform != "" && input.Platform != "chat_gpt" && input.Platform != "google") || (input.TargetType != "" && input.TargetType != "brand" && input.TargetType != "domain") || (input.LanguageCode != "" && !regexp.MustCompile(`^[a-z]{2}(?:-[A-Z]{2})?$`).MatchString(input.LanguageCode)) {
-		return nil, &ConfigurationError{Message: "AI visibility options are invalid."}
+		return nil, &ConfigurationError{Message: "Brand visibility options are invalid."}
 	}
 	config := newRequestConfig(options...)
 	config.body = input
-	return requestJSON[DataResponse[AIAnalysisOutcome]](c, ctx, http.MethodPost, projectResourcePath(projectID, "ai-visibility"), config)
+	return requestJSON[DataResponse[AIAnalysisOutcome]](c, ctx, http.MethodPost, projectResourcePath(projectID, "brand-visibility"), config)
 }
 
 // CompareAIPrompts estimates or runs synthetic prompt comparisons.

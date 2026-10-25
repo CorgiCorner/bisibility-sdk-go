@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-// TestUpdateAITrackingScheduleIsPartialWithTopLevelConsent covers contract-audit
+// TestUpdatePromptTrackerScheduleIsPartialWithTopLevelConsent covers contract-audit
 // finding #7: the PATCH must omit untouched fields and surface consent at the
 // top level of the body, matching the API's scheduleInputSchema.partial() plus
 // a top-level consent flag.
-func TestUpdateAITrackingScheduleIsPartialWithTopLevelConsent(t *testing.T) {
+func TestUpdatePromptTrackerScheduleIsPartialWithTopLevelConsent(t *testing.T) {
 	t.Run("rename-only patch sends just the new name and consent", func(t *testing.T) {
 		var captured string
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,11 +34,11 @@ func TestUpdateAITrackingScheduleIsPartialWithTopLevelConsent(t *testing.T) {
 		defer server.Close()
 		c := newTestClient(t, server.URL+"/api/v1")
 		name := "Weekly refresh"
-		if _, err := c.UpdateAITrackingSchedule(
+		if _, err := c.UpdatePromptTrackerSchedule(
 			context.Background(),
 			"prj_a00000000000000000000000",
 			"ais_a00000000000000000000000",
-			AITrackingSchedulePatch{Name: &name, Consent: true},
+			PromptTrackerSchedulePatch{Name: &name, Consent: true},
 		); err != nil {
 			t.Fatal(err)
 		}
@@ -79,11 +79,11 @@ func TestUpdateAITrackingScheduleIsPartialWithTopLevelConsent(t *testing.T) {
 		}))
 		defer server.Close()
 		c := newTestClient(t, server.URL+"/api/v1")
-		if _, err := c.UpdateAITrackingSchedule(
+		if _, err := c.UpdatePromptTrackerSchedule(
 			context.Background(),
 			"prj_a00000000000000000000000",
 			"ais_a00000000000000000000000",
-			AITrackingSchedulePatch{NextRunAt: NullString(), Consent: true},
+			PromptTrackerSchedulePatch{NextRunAt: NullString(), Consent: true},
 		); err != nil {
 			t.Fatal(err)
 		}
@@ -109,15 +109,15 @@ func TestUpdateAITrackingScheduleIsPartialWithTopLevelConsent(t *testing.T) {
 		defer server.Close()
 		c := newTestClient(t, server.URL+"/api/v1")
 		enabled := true
-		plan := &AITrackingRunInput{
-			AITrackingPreviewInput: AITrackingPreviewInput{PromptIDs: []string{"aip_a00000000000000000000000"}},
-			Consent:                true,
+		plan := &PromptTrackerRunInput{
+			PromptTrackerPreviewInput: PromptTrackerPreviewInput{PromptIDs: []string{"aip_a00000000000000000000000"}},
+			Consent:                   true,
 		}
-		if _, err := c.UpdateAITrackingSchedule(
+		if _, err := c.UpdatePromptTrackerSchedule(
 			context.Background(),
 			"prj_a00000000000000000000000",
 			"ais_a00000000000000000000000",
-			AITrackingSchedulePatch{Enabled: &enabled, Configuration: plan, Consent: true},
+			PromptTrackerSchedulePatch{Enabled: &enabled, Configuration: plan, Consent: true},
 		); err != nil {
 			t.Fatal(err)
 		}

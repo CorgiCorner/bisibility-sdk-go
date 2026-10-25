@@ -49,6 +49,7 @@ type ExportRankHistoryOptions struct {
 
 // RankHistoryExportRow is one exported rank-check result.
 type RankHistoryExportRow struct {
+	EvidenceProjection *ProviderEvidenceProjection `json:"evidence_projection,omitempty"`
 	// Report is populated only for opt-in version 2. The legacy fields remain available.
 	Report               *RankHistoryReportRecord `json:"-"`
 	Provider             *string                  `json:"provider"`
