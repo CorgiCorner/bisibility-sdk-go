@@ -254,7 +254,7 @@ type RevokeTeamInviteResult struct {
 
 // ProviderID identifies a supported provider. The connectable provider ids
 // accepted by connect, test, settings, and disconnect endpoints are
-// dataforseo, serpapi, gsc, ga4, and plausible; ahrefs and semrush only
+// dataforseo, serpapi, gsc, ga4, plausible, and pagespeed; ahrefs and semrush only
 // appear in catalog listings.
 type ProviderID string
 
@@ -264,6 +264,7 @@ const (
 	ProviderIDGSC        ProviderID = "gsc"
 	ProviderIDGA4        ProviderID = "ga4"
 	ProviderIDPlausible  ProviderID = "plausible"
+	ProviderIDPageSpeed  ProviderID = "pagespeed"
 	ProviderIDAhrefs     ProviderID = "ahrefs"
 	ProviderIDSemrush    ProviderID = "semrush"
 )
@@ -432,16 +433,17 @@ const (
 
 // SavedViewFilters are keyword grid filters stored in a saved view.
 type SavedViewFilters struct {
-	Change   string                    `json:"change,omitempty"`
-	Contains string                    `json:"contains,omitempty"`
-	Country  string                    `json:"country,omitempty"`
-	Device   string                    `json:"device,omitempty"`
-	Position []SavedViewPositionBucket `json:"position,omitempty"`
-	SERP     []string                  `json:"serp,omitempty"`
-	Tags     []string                  `json:"tags,omitempty"`
-	VolMax   int                       `json:"vol_max,omitempty"`
-	VolMin   int                       `json:"vol_min,omitempty"`
-	WrongURL bool                      `json:"wrong_url,omitempty"`
+	AIOverviewShown *bool                     `json:"ai_overview_shown,omitempty"`
+	Change          string                    `json:"change,omitempty"`
+	Contains        string                    `json:"contains,omitempty"`
+	Country         string                    `json:"country,omitempty"`
+	Device          string                    `json:"device,omitempty"`
+	Position        []SavedViewPositionBucket `json:"position,omitempty"`
+	SERP            []string                  `json:"serp,omitempty"`
+	Tags            []string                  `json:"tags,omitempty"`
+	VolMax          int                       `json:"vol_max,omitempty"`
+	VolMin          int                       `json:"vol_min,omitempty"`
+	WrongURL        bool                      `json:"wrong_url,omitempty"`
 }
 
 // SavedViewConfig is the keyword grid state stored in a saved view.
@@ -452,11 +454,16 @@ type SavedViewConfig struct {
 
 // SavedView is a keyword saved view.
 type SavedView struct {
-	Config      SavedViewConfig `json:"config"`
-	CreatedAt   time.Time       `json:"created_at"`
-	CreatedByID *string         `json:"created_by_id"`
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
+	Definition  *SavedViewDefinition `json:"definition,omitempty"`
+	Surface     string               `json:"surface,omitempty"`
+	CanDelete   *bool                `json:"can_delete,omitempty"`
+	Revision    int                  `json:"revision,omitempty"`
+	Visibility  string               `json:"visibility,omitempty"`
+	Config      SavedViewConfig      `json:"config"`
+	CreatedAt   time.Time            `json:"created_at"`
+	CreatedByID *string              `json:"created_by_id"`
+	ID          string               `json:"id"`
+	Name        string               `json:"name"`
 }
 
 // CreateSavedViewInput creates a project saved view.

@@ -412,3 +412,40 @@ type TrafficSyncSummary struct {
 	Runs             []TrafficSyncRun     `json:"runs"`
 	Skipped          []TrafficSyncSkipped `json:"skipped"`
 }
+
+// SearchPerformanceTotalsOptions selects inclusive Pacific dates and optional comparison.
+type SearchPerformanceTotalsOptions struct {
+	StartDate       string
+	EndDate         string
+	ComparePrevious bool
+}
+
+// SearchPerformanceFreshness describes complete or provisional aggregate evidence.
+type SearchPerformanceFreshness struct {
+	DataState           string    `json:"data_state"`
+	FetchedAt           time.Time `json:"fetched_at"`
+	FinalizedThrough    *string   `json:"finalized_through"`
+	FirstIncompleteDate *string   `json:"first_incomplete_date"`
+}
+
+// SearchPerformancePeriod contains totals for exactly the requested dates.
+type SearchPerformancePeriod struct {
+	StartDate     string                     `json:"start_date"`
+	EndDate       string                     `json:"end_date"`
+	DataStartDate *string                    `json:"data_start_date"`
+	DataEndDate   *string                    `json:"data_end_date"`
+	Clicks        int                        `json:"clicks"`
+	Impressions   int                        `json:"impressions"`
+	CTR           float64                    `json:"ctr"`
+	Position      float64                    `json:"position"`
+	Freshness     SearchPerformanceFreshness `json:"freshness"`
+}
+
+// SearchPerformanceTotalsResponse contains all-query web totals, not a sum of visible rows.
+type SearchPerformanceTotalsResponse struct {
+	Current    SearchPerformancePeriod  `json:"current"`
+	Previous   *SearchPerformancePeriod `json:"previous"`
+	Property   string                   `json:"property"`
+	SearchType string                   `json:"search_type"`
+	Source     string                   `json:"source"`
+}

@@ -137,3 +137,38 @@ type UpdateWebhookInput struct {
 	HMACSecret  string  `json:"hmac_secret,omitempty"`
 	URL         string  `json:"url,omitempty"`
 }
+
+// DeleteMeInput confirms permanent account deletion with the account email.
+type DeleteMeInput struct {
+	ConfirmEmail string `json:"confirm_email"`
+}
+
+// MeDeleted confirms that the account was deleted.
+type MeDeleted struct {
+	Deleted bool `json:"deleted"`
+}
+
+// DevicePushEnvironment identifies the APNs environment. Response values remain open.
+type DevicePushEnvironment string
+
+const (
+	DevicePushEnvironmentProduction DevicePushEnvironment = "production"
+	DevicePushEnvironmentSandbox    DevicePushEnvironment = "sandbox"
+)
+
+// RegisterDevicePushTokenInput registers an APNs token for this account.
+type RegisterDevicePushTokenInput struct {
+	Token       string                `json:"token"`
+	Environment DevicePushEnvironment `json:"environment"`
+	BundleID    string                `json:"bundle_id"`
+}
+
+// DevicePushToken exposes only the token suffix, never the complete token.
+type DevicePushToken struct {
+	ID          string                `json:"id"`
+	BundleID    string                `json:"bundle_id"`
+	Environment DevicePushEnvironment `json:"environment"`
+	CreatedAt   time.Time             `json:"created_at"`
+	LastSeenAt  time.Time             `json:"last_seen_at"`
+	TokenSuffix string                `json:"token_suffix"`
+}

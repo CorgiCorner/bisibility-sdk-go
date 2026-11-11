@@ -11,6 +11,19 @@ import (
 const skipCoverageOperation = ""
 
 var clientMethodOperationIDs = map[string]string{
+	"GetDomainVerification":      "getDomainVerification",
+	"IssueDomainVerification":    "issueDomainVerification",
+	"CheckDomainVerification":    "checkDomainVerification",
+	"GetSiteAuditRun":            "getSiteAuditRun",
+	"CancelSiteAuditRun":         "cancelSiteAuditRun",
+	"ResumeSiteAuditRun":         "resumeSiteAuditRun",
+	"ListSiteAuditPages":         "listSiteAuditPages",
+	"DeleteMe":                   "deleteMe",
+	"ListDevicePushTokens":       "listDevicePushTokens",
+	"RegisterDevicePushToken":    "registerDevicePushToken",
+	"DeleteDevicePushToken":      "deleteDevicePushToken",
+	"GetSearchPerformanceTotals": "getSearchPerformanceTotals",
+
 	"GetPageIndexingReport":             "getPageIndexingReport",
 	"ListPageIndexingURLs":              "listPageIndexingUrls",
 	"IteratePageIndexingURLs":           skipCoverageOperation,

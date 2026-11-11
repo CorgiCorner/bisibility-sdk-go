@@ -113,7 +113,7 @@ mixed-case values before it sends an HTTP request. Use `ValidatePublicID` or
 `ValidatePublicIDPrefix` when validating values before calling the client.
 
 The SDK namespaces are `agr`, `al`, `alr`, `audit`, `check`, `cmp`, `conn`, `dwh`, `ferry`,
-`imp`, `inv`, `key`, `kw`, `mbr`, `ntf`, `pat`, `prj`, `rcr`, `sid`, `sig`, `svkw`, `tag`, `usr`,
+`dpt`, `imp`, `inv`, `key`, `kw`, `mbr`, `ntf`, `pat`, `prj`, `rcr`, `sid`, `sig`, `svkw`, `tag`, `usr`,
 `viw`, and `we`. Provider IDs and `location_key` values are not public resource IDs.
 Migration-token secrets are credentials, while `ferry_` identifies the migration-token resource.
 
@@ -550,7 +550,7 @@ migration tokens.
 `ListKeywords` filters include `Intent` and `Topic` (case-insensitive exact
 matches, sent as `filter[intent]` and `filter[topic]`). Provider methods
 accept the connectable provider ids `dataforseo`, `serpapi`, `gsc`, `ga4`,
-and `plausible` (`bisibility.ProviderIDPlausible`); self-hosted providers
+`plausible` (`bisibility.ProviderIDPlausible`), and `pagespeed` (`bisibility.ProviderIDPageSpeed`); self-hosted providers
 such as Plausible take their instance URL via
 `ProviderCredentialsInput.Endpoint`.
 
@@ -775,3 +775,27 @@ comma-separated `Status`, opaque `Cursor` and `Limit` (1-200).
 future execution and polling states remain readable strings.
 
 Project defaults previews require `reviewed_project_defaults: v1`. Call `PreviewProjectDefaults` with a draft, present its signed preview and impact, then explicitly submit the same draft with `ProjectDefaultsReview` through `UpdateProjectDefaults`. Keep the revision as a string and reuse one command key for retries. Preview never changes project settings.
+
+### Saved-view definitions and API additions
+
+`SavedView.Definition` retains keyword and competitor definitions for versions 1 and 2.
+Keyword definitions expose `Filters.AIOverviewShown`, including explicit `false`, and
+version 2 exposes `ReportScope.View` with `SavedViewReportAIOverviews`. Older responses
+may omit the definition or the filter; an absent filter decodes as false. Set the
+optional `SavedViewConfig.Filters.AIOverviewShown` pointer to send explicit false on
+`CreateSavedView`. The server returns the normalized definition on create and list.
+
+`GetDomainVerification`, `IssueDomainVerification`, and `CheckDomainVerification`
+manage project-domain proofs. A missing proof is `DomainVerificationResponse.Data == nil`.
+`GetSiteAuditRun`, `CancelSiteAuditRun`, `ResumeSiteAuditRun`, and `ListSiteAuditPages`
+use project and `agr_` report IDs. Page reads support offset 0-100000 and limit 1-100;
+a nil `NextOffset` ends pagination. These reads do not launch a crawl.
+
+`GetSearchPerformanceTotals` returns all-query totals, freshness, and an optional
+previous period for inclusive Pacific dates. `DeleteMe` requires the account email
+and server-enforced deletion authorization. `ListDevicePushTokens`,
+`RegisterDevicePushToken`, and `DeleteDevicePushToken` manage `dpt_` device registrations;
+responses contain only a token suffix. All operations retain shared request options.
+
+`CreateAgentReport` accepts external report kinds. `prompt_research` and
+`challenge_report` are reserved producer kinds.

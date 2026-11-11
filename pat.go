@@ -91,3 +91,31 @@ func (c *Client) UpdateWebhook(ctx context.Context, projectID, webhookID string,
 func (c *Client) DeleteWebhook(ctx context.Context, projectID, webhookID string, options ...RequestOption) (*Webhook, error) {
 	return requestJSON[Webhook](c, ctx, http.MethodDelete, projectMemberResourcePath(projectID, "webhooks", webhookID), newRequestConfig(options...))
 }
+
+// DeleteMe permanently deletes the authenticated account and its owned data.
+// The server requires an admin PAT, or a recently authenticated app token.
+func (c *Client) DeleteMe(ctx context.Context, input DeleteMeInput, options ...RequestOption) (*MeDeleted, error) {
+	config := newRequestConfig(options...)
+	config.body = input
+	return requestJSON[MeDeleted](c, ctx, http.MethodDelete, "/me", config)
+}
+
+// ListDevicePushTokens lists this account's registered devices.
+func (c *Client) ListDevicePushTokens(ctx context.Context, options ...RequestOption) (*ListResponse[DevicePushToken], error) {
+	return requestJSON[ListResponse[DevicePushToken]](c, ctx, http.MethodGet, "/me/push-tokens", newRequestConfig(options...))
+}
+
+// RegisterDevicePushToken registers a device, moving its token from another account if needed.
+func (c *Client) RegisterDevicePushToken(ctx context.Context, input RegisterDevicePushTokenInput, options ...RequestOption) (*DevicePushToken, error) {
+	config := newRequestConfig(options...)
+	config.body = input
+	return requestJSON[DevicePushToken](c, ctx, http.MethodPost, "/me/push-tokens", config)
+}
+
+// DeleteDevicePushToken removes one registered device from this account.
+func (c *Client) DeleteDevicePushToken(ctx context.Context, tokenID string, options ...RequestOption) (*DevicePushToken, error) {
+	if err := requirePublicID(tokenID, "pushTokenID", PublicIDPrefixDevicePushToken); err != nil {
+		return nil, err
+	}
+	return requestJSON[DevicePushToken](c, ctx, http.MethodDelete, "/me/push-tokens/"+url.PathEscape(tokenID), newRequestConfig(options...))
+}

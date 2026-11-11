@@ -498,3 +498,27 @@ func (outcome *AIAnalysisOutcome) UnmarshalJSON(data []byte) error {
 	*outcome = AIAnalysisOutcome(value)
 	return nil
 }
+
+// SiteAuditRunProgress is retained crawl progress, including unknown timestamps.
+type SiteAuditRunProgress struct {
+	State        string  `json:"state"`
+	StopReason   *string `json:"stop_reason"`
+	PagesCrawled int     `json:"pages_crawled"`
+	BudgetPages  int     `json:"budget_pages"`
+	Requests     int     `json:"requests"`
+	StartedAt    *string `json:"started_at"`
+	CompletedAt  *string `json:"completed_at"`
+}
+
+// SiteAuditPageList is an offset page of retained crawl results.
+type SiteAuditPageList struct {
+	Pages      []SiteAuditPage `json:"pages"`
+	Offset     int             `json:"offset"`
+	NextOffset *int            `json:"next_offset"`
+}
+
+// ListSiteAuditPagesOptions controls a bounded offset page.
+type ListSiteAuditPagesOptions struct {
+	Offset int
+	Limit  int
+}

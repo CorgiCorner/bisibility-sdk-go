@@ -14,40 +14,42 @@ import (
 type PublicIDPrefix string
 
 const (
-	PublicIDPrefixReport       PublicIDPrefix = "agr"
-	PublicIDPrefixAlert        PublicIDPrefix = "al"
-	PublicIDPrefixRule         PublicIDPrefix = "alr"
-	PublicIDPrefixAudit        PublicIDPrefix = "audit"
-	PublicIDPrefixCheck        PublicIDPrefix = "check"
-	PublicIDPrefixComp         PublicIDPrefix = "cmp"
-	PublicIDPrefixConn         PublicIDPrefix = "conn"
-	PublicIDPrefixHook         PublicIDPrefix = "dwh"
-	PublicIDPrefixMToken       PublicIDPrefix = "ferry"
-	PublicIDPrefixJob          PublicIDPrefix = "imp"
-	PublicIDPrefixInvite       PublicIDPrefix = "inv"
-	PublicIDPrefixKey          PublicIDPrefix = "key"
-	PublicIDPrefixKeyword      PublicIDPrefix = "kw"
-	PublicIDPrefixLocalMonitor PublicIDPrefix = "lmn"
-	PublicIDPrefixLocalRun     PublicIDPrefix = "lmr"
-	PublicIDPrefixLocalTarget  PublicIDPrefix = "lmt"
-	PublicIDPrefixMember       PublicIDPrefix = "mbr"
-	PublicIDPrefixNotif        PublicIDPrefix = "ntf"
-	PublicIDPrefixPAT          PublicIDPrefix = "pat"
-	PublicIDPrefixProject      PublicIDPrefix = "prj"
-	PublicIDPrefixRun          PublicIDPrefix = "rcr"
-	PublicIDPrefixSession      PublicIDPrefix = "sid"
-	PublicIDPrefixSignal       PublicIDPrefix = "sig"
-	PublicIDPrefixSKW          PublicIDPrefix = "svkw"
-	PublicIDPrefixTag          PublicIDPrefix = "tag"
-	PublicIDPrefixUser         PublicIDPrefix = "usr"
-	PublicIDPrefixView         PublicIDPrefix = "viw"
-	PublicIDPrefixWebhook      PublicIDPrefix = "we"
+	PublicIDPrefixDevicePushToken PublicIDPrefix = "dpt"
+	PublicIDPrefixReport          PublicIDPrefix = "agr"
+	PublicIDPrefixAlert           PublicIDPrefix = "al"
+	PublicIDPrefixRule            PublicIDPrefix = "alr"
+	PublicIDPrefixAudit           PublicIDPrefix = "audit"
+	PublicIDPrefixCheck           PublicIDPrefix = "check"
+	PublicIDPrefixComp            PublicIDPrefix = "cmp"
+	PublicIDPrefixConn            PublicIDPrefix = "conn"
+	PublicIDPrefixHook            PublicIDPrefix = "dwh"
+	PublicIDPrefixMToken          PublicIDPrefix = "ferry"
+	PublicIDPrefixJob             PublicIDPrefix = "imp"
+	PublicIDPrefixInvite          PublicIDPrefix = "inv"
+	PublicIDPrefixKey             PublicIDPrefix = "key"
+	PublicIDPrefixKeyword         PublicIDPrefix = "kw"
+	PublicIDPrefixLocalMonitor    PublicIDPrefix = "lmn"
+	PublicIDPrefixLocalRun        PublicIDPrefix = "lmr"
+	PublicIDPrefixLocalTarget     PublicIDPrefix = "lmt"
+	PublicIDPrefixMember          PublicIDPrefix = "mbr"
+	PublicIDPrefixNotif           PublicIDPrefix = "ntf"
+	PublicIDPrefixPAT             PublicIDPrefix = "pat"
+	PublicIDPrefixProject         PublicIDPrefix = "prj"
+	PublicIDPrefixRun             PublicIDPrefix = "rcr"
+	PublicIDPrefixSession         PublicIDPrefix = "sid"
+	PublicIDPrefixSignal          PublicIDPrefix = "sig"
+	PublicIDPrefixSKW             PublicIDPrefix = "svkw"
+	PublicIDPrefixTag             PublicIDPrefix = "tag"
+	PublicIDPrefixUser            PublicIDPrefix = "usr"
+	PublicIDPrefixView            PublicIDPrefix = "viw"
+	PublicIDPrefixWebhook         PublicIDPrefix = "we"
 )
 
 var publicIDPrefixes = map[PublicIDPrefix]struct{}{
 	PublicIDPrefixLocalMonitor: {}, PublicIDPrefixLocalRun: {}, PublicIDPrefixLocalTarget: {},
-	PublicIDPrefixReport: {},
-	PublicIDPrefixAlert:  {}, PublicIDPrefixAudit: {}, PublicIDPrefixCheck: {},
+	PublicIDPrefixDevicePushToken: {},
+	PublicIDPrefixReport:          {},
+	PublicIDPrefixAlert:           {}, PublicIDPrefixAudit: {}, PublicIDPrefixCheck: {},
 	PublicIDPrefixComp: {}, PublicIDPrefixConn: {}, PublicIDPrefixHook: {},
 	PublicIDPrefixInvite: {}, PublicIDPrefixJob: {}, PublicIDPrefixKey: {},
 	PublicIDPrefixKeyword: {}, PublicIDPrefixMember: {}, PublicIDPrefixMToken: {},
@@ -367,6 +369,7 @@ var bodyIDFieldPrefixes = map[string]PublicIDPrefix{
 // responsePublicIDFieldPrefixes records every SDK response field that carries
 // a public resource ID. Natural provider IDs and location keys are omitted.
 var responsePublicIDFieldPrefixes = map[reflect.Type]map[string]PublicIDPrefix{
+	reflect.TypeOf(DevicePushToken{}):                  {"id": PublicIDPrefixDevicePushToken},
 	reflect.TypeOf(AgentReportSummary{}):               {"id": PublicIDPrefixReport},
 	reflect.TypeOf(AgentReportResource{}):              {"id": PublicIDPrefixReport},
 	reflect.TypeOf(SiteAuditReport{}):                  {"id": PublicIDPrefixReport},

@@ -114,3 +114,14 @@ func (c *Client) ListSearchPerformanceQueryStats(ctx context.Context, projectID 
 func (c *Client) SyncProjectTraffic(ctx context.Context, projectID string, options ...RequestOption) (*TrafficSyncSummary, error) {
 	return requestJSON[TrafficSyncSummary](c, ctx, http.MethodPost, projectResourcePath(projectID, "analytics/sync"), newRequestConfig(options...))
 }
+
+// GetSearchPerformanceTotals reads complete search totals without starting an import.
+func (c *Client) GetSearchPerformanceTotals(ctx context.Context, projectID string, input SearchPerformanceTotalsOptions, options ...RequestOption) (*SearchPerformanceTotalsResponse, error) {
+	config := newRequestConfig(options...)
+	config.query.Set("start_date", input.StartDate)
+	config.query.Set("end_date", input.EndDate)
+	if input.ComparePrevious {
+		config.query.Set("compare_previous", "true")
+	}
+	return requestJSON[SearchPerformanceTotalsResponse](c, ctx, http.MethodGet, projectResourcePath(projectID, "analytics/totals"), config)
+}

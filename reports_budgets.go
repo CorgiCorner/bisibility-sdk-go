@@ -88,6 +88,7 @@ func (c *Client) ListAgentReports(ctx context.Context, projectID string, input *
 }
 
 // CreateAgentReport saves an external report, preserving JSON body and provenance keys.
+// prompt_research and challenge_report are reserved producer kinds.
 func (c *Client) CreateAgentReport(ctx context.Context, projectID string, input CreateAgentReportInput, options ...RequestOption) (*DataResponse[AgentReportResource], error) {
 	if !regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]{0,63}$`).MatchString(input.Kind) || strings.EqualFold(input.Kind, "site_audit") || strings.EqualFold(input.Kind, "ai_visibility") || strings.EqualFold(input.Kind, "prompt_explorer") {
 		return nil, &ConfigurationError{Message: "Report kind must identify external analysis."}
@@ -169,4 +170,32 @@ func (c *Client) CompareAIPrompts(ctx context.Context, projectID string, input C
 	config := newRequestConfig(options...)
 	config.body = input
 	return requestJSON[DataResponse[AIAnalysisOutcome]](c, ctx, http.MethodPost, projectResourcePath(projectID, "prompt-explorer"), config)
+}
+
+// GetSiteAuditRun reads retained progress without starting another crawl.
+func (c *Client) GetSiteAuditRun(ctx context.Context, projectID, reportID string, options ...RequestOption) (*DataResponse[SiteAuditRunProgress], error) {
+	return requestJSON[DataResponse[SiteAuditRunProgress]](c, ctx, http.MethodGet, projectMemberResourcePath(projectID, "site-audits", reportID)+"/run", newRequestConfig(options...))
+}
+
+// CancelSiteAuditRun requests cancellation of a crawl.
+func (c *Client) CancelSiteAuditRun(ctx context.Context, projectID, reportID string, options ...RequestOption) (*DataResponse[SiteAuditRunProgress], error) {
+	return requestJSON[DataResponse[SiteAuditRunProgress]](c, ctx, http.MethodPost, projectMemberResourcePath(projectID, "site-audits", reportID)+"/cancel", newRequestConfig(options...))
+}
+
+// ResumeSiteAuditRun resumes a paused crawl.
+func (c *Client) ResumeSiteAuditRun(ctx context.Context, projectID, reportID string, options ...RequestOption) (*DataResponse[SiteAuditRunProgress], error) {
+	return requestJSON[DataResponse[SiteAuditRunProgress]](c, ctx, http.MethodPost, projectMemberResourcePath(projectID, "site-audits", reportID)+"/resume", newRequestConfig(options...))
+}
+
+// ListSiteAuditPages reads one bounded page of retained results.
+func (c *Client) ListSiteAuditPages(ctx context.Context, projectID, reportID string, input *ListSiteAuditPagesOptions, options ...RequestOption) (*DataResponse[SiteAuditPageList], error) {
+	config := newRequestConfig(options...)
+	if input != nil {
+		if input.Offset < 0 || input.Offset > 100000 || input.Limit < 0 || input.Limit > 100 {
+			return nil, &ConfigurationError{Message: "offset must be 0-100000 and limit must be 1-100 when supplied."}
+		}
+		addIntQuery(config.query, "offset", input.Offset)
+		addIntQuery(config.query, "limit", input.Limit)
+	}
+	return requestJSON[DataResponse[SiteAuditPageList]](c, ctx, http.MethodGet, projectMemberResourcePath(projectID, "site-audits", reportID)+"/pages", config)
 }
